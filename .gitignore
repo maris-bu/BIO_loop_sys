@@ -1,0 +1,9 @@
+# Python un sistēmas faili
+__pycache__/
+*.py[cod]
+
+# Lietotāja privātie veselības dati
+data/
+
+# IDE iestatījumi (lai neradītu konfliktus, ja programmēsi no cita datora)
+.vscode/

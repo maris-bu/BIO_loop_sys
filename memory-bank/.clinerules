@@ -1,0 +1,19 @@
+# Memory Bank Maintenance Rules
+
+You must follow the Memory Bank pattern to maintain continuous context across sessions. The memory bank is stored in the `memory-bank/` directory.
+
+## Core Files:
+1. `ProductContext.md`: High-level vision, business goals, and product requirements.
+2. `TechContext.md`: Technical architecture, design decisions, hardware/BLE notes, and constraints.
+3. `Progress.md`: Current roadmap, what is built, and what is next (Backlog).
+4. `ActiveContext.md`: The focus of the current session.
+
+## Your Workflow:
+1. **At the start of ANY task**: Read the files in `memory-bank/` to understand the current state of the project.
+2. **During the task**: If you make a critical technical decision, discover a constraint, or change the architecture, update `TechContext.md` immediately.
+3. **At the end of EVERY task/session**: 
+   - Update `Progress.md` (mark what you finished, update the backlog).
+   - Update `ActiveContext.md` to reflect what should be done next.
+   - Ensure the memory bank is always the "ground truth" of the project state.
+
+Never write code before checking the Memory Bank if you are unsure about the existing architecture.
