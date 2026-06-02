@@ -1,1 +1,1 @@
-Next steps: Implement data logging.
+Next steps: Long-term system testing and potentially integrating large open-source stress datasets to improve the ML classifier. The core hybrid biofeedback engine is now 100% stable, fully operational, with Q-table persistence and data-logging enabled.

@@ -3,6 +3,8 @@ import random
 import joblib
 import pandas as pd
 import warnings
+import pickle
+import os
 
 # Izslēdzam brīdinājumus par Pandas datu rāmjiem, lai netrokšņo terminālī
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -38,6 +40,18 @@ class QLearningAudioAgent:
             old_value = self.q_table[self.last_state][self.last_action_idx]
             new_value = old_value + self.learning_rate * (reward - old_value)
             self.q_table[self.last_state][self.last_action_idx] = new_value
+
+    def save_model(self, filepath="stresa_q_table.pkl"):
+        with open(filepath, 'wb') as f:
+            pickle.dump(self.q_table, f)
+
+    def load_model(self, filepath="stresa_q_table.pkl"):
+        if os.path.exists(filepath):
+            with open(filepath, 'rb') as f:
+                self.q_table = pickle.load(f)
+            print(f"🧠 Q-Aģenta atmiņa (Q-table) ielādēta no \'{filepath}\'")
+        else:
+            print(f"⚠️ Q-Aģenta atmiņas fails (\'{filepath}\') nav atrasts. Sāku ar tukšu Q-table.")
 
 class StressClassifier:
     def __init__(self, model_path='stresa_modelis.joblib'):

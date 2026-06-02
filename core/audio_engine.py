@@ -1,12 +1,13 @@
 import multiprocessing as mp
-import numpy as np
-import sounddevice as sd
 
 SAMPLE_RATE = 44100
 BASE_FREQ = 110.0
 VOLUME = 0.8
 
 def audio_process(shared_freq, shared_tempo):
+    import numpy as np
+    import sounddevice as sd 
+    
     phase_l, phase_r, phase_iso, phase_tempo = 0.0, 0.0, 0.0, 0.0
 
     def callback(outdata, frames, time_info, status):

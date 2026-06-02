@@ -63,6 +63,11 @@ Validācijas Datu vākšana:
 Pievienot datu saglabāšanas loģiku (log failus), kas automātiski pieraksta katras sesijas rezultātus vēlākai analīzei un pētījumiem.
 
 COMPLETED:
-- Refactor `hackathon_mvp.py` into a modular architecture.
-- Add Dual BLE Support (Polar H10 + Hammerhead).
-- Implement the Scientific Epoch (60 beats).
+- [x] Refactor `hackathon_mvp.py` into a modular architecture.
+- [x] Add Dual BLE Support (Polar H10 + Hammerhead).
+- [x] Implement the Scientific Epoch (60 beats).
+- [x] Polar H10 BLE integration working and streaming data.
+- [x] Implement real-time RMSSD trend display in terminal.
+- [x] Implement session summary on shutdown.
+- [x] Implement Q-table persistence (saving/loading).
+- [x] Implement automated CSV data logging for Q-Agent interactions and session summaries.

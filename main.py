@@ -24,8 +24,17 @@ if __name__ == "__main__":
 
     classifier = StressClassifier(model_path='stresa_modelis.joblib')
     ai_agent = QLearningAudioAgent()
+    ai_agent.load_model()
     
     try:
         asyncio.run(ble_receiver(shared_freq, shared_tempo, classifier, ai_agent, calculate_rmssd))
     except KeyboardInterrupt:
-        print("\nSistēma apturēta.")
+        print("\nSaņemts apturēšanas signāls (Ctrl+C)...")
+    finally:
+        ai_agent.save_model()
+        print("🧠 Q-Aģenta atmiņa (Q-table) veiksmīgi saglabāta nākamajam seansam!")
+        print("Apturu audio dzinēju...")
+        if audio_p.is_alive():
+            audio_p.terminate()
+            audio_p.join()
+        print("Sistēma veiksmīgi apturēta.")
