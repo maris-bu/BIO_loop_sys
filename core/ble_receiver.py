@@ -26,7 +26,7 @@ async def discover_and_connect_ble_device():
         
     return target_device
 
-async def ble_receiver(shared_freq, shared_tempo, classifier, ai_agent, calculate_rmssd):
+async def ble_receiver(user_name, shared_freq, shared_tempo, classifier, ai_agent, calculate_rmssd):
     import datetime
     from core.data_logger import log_q_agent_interaction, log_session_summary
 
@@ -121,6 +121,7 @@ async def ble_receiver(shared_freq, shared_tempo, classifier, ai_agent, calculat
 
             # Log the previous interaction before choosing a new action
             log_q_agent_interaction(
+                user_name,
                 datetime.datetime.now(),
                 previous_hr,
                 previous_rmssd,
@@ -186,4 +187,4 @@ async def ble_receiver(shared_freq, shared_tempo, classifier, ai_agent, calculat
             print(f"📈 KOPĒJAIS UZLABOJUMS (DELTA): {total_delta:+.1f} ms")
             print("═"*60 + "\n")
 
-            log_session_summary(start_time.date(), session_duration.total_seconds(), baseline_rmssd, final_rmssd, total_delta)
+            log_session_summary(user_name, start_time.date(), session_duration.total_seconds(), baseline_rmssd, final_rmssd, total_delta)

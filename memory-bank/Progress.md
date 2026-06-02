@@ -71,3 +71,5 @@ COMPLETED:
 - [x] Implement session summary on shutdown.
 - [x] Implement Q-table persistence (saving/loading).
 - [x] Implement automated CSV data logging for Q-Agent interactions and session summaries.
+- [x] Implement multi-user profile system with dynamic file naming for Q-table and data logs.
+- [x] Update Q-Agent\'s action space to use Vibroacoustic Therapy (VAT) tones.

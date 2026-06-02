@@ -7,3 +7,4 @@ data/
 
 # IDE iestatījumi (lai neradītu konfliktus, ja programmēsi no cita datora)
 .vscode/
+*.pkl

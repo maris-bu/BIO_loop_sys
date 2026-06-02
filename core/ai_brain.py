@@ -10,8 +10,9 @@ import os
 warnings.filterwarnings("ignore", category=UserWarning)
 
 class QLearningAudioAgent:
-    def __init__(self):
-        self.actions = [6.0, 10.0, 14.0]
+    def __init__(self, user_name="default"):
+        self.user_name = user_name
+        self.actions = [30, 40, 50, 60, 80]
         self.q_table = {
             0: [0.0, 0.0, 0.0],
             1: [0.0, 0.0, 0.0]
@@ -41,23 +42,26 @@ class QLearningAudioAgent:
             new_value = old_value + self.learning_rate * (reward - old_value)
             self.q_table[self.last_state][self.last_action_idx] = new_value
 
-    def save_model(self, filepath="stresa_q_table.pkl"):
+    def save_model(self):
+        filepath = f"data/{self.user_name}_q_table.pkl"
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, 'wb') as f:
             pickle.dump(self.q_table, f)
 
-    def load_model(self, filepath="stresa_q_table.pkl"):
+    def load_model(self):
+        filepath = f"data/{self.user_name}_q_table.pkl"
         if os.path.exists(filepath):
             with open(filepath, 'rb') as f:
                 self.q_table = pickle.load(f)
-            print(f"🧠 Q-Aģenta atmiņa (Q-table) ielādēta no \'{filepath}\'")
+            print(f"🧠 Q-Aģenta atmiņa (Q-table) ielādēta no ")
         else:
-            print(f"⚠️ Q-Aģenta atmiņas fails (\'{filepath}\') nav atrasts. Sāku ar tukšu Q-table.")
+            print(f"⚠️ Q-Aģenta atmiņas fails () nav atrasts. Sāku ar tukšu Q-table.")
 
 class StressClassifier:
-    def __init__(self, model_path='stresa_modelis.joblib'):
+    def __init__(self, model_path="stresa_modelis.joblib"):
         try:
             self.model = joblib.load(model_path)
-            print(f"🧠 ML Model \'{model_path}\' ielādēts veiksmīgi!")
+            print(f"🧠 ML Model ")
         except FileNotFoundError:
             print(f"❌ Nevaru atrast {model_path}. Pārliecinies, ka tas atrodas pareizajā mapē.")
             self.model = None
@@ -65,5 +69,5 @@ class StressClassifier:
     def predict(self, hr, rmssd):
         if self.model is None: 
             return 0 # Default to 'MIERS' if model not loaded
-        features = pd.DataFrame([[hr, rmssd]], columns=['BPM', 'RMSSD'])
+        features = pd.DataFrame([[hr, rmssd]], columns=["BPM", "RMSSD"])
         return self.model.predict(features)[0]

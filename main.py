@@ -12,6 +12,8 @@ if __name__ == "__main__":
     print("  AI BIOFEEDBACK SISTĒMA (HIBRĪDS)")
     print("═"*40)
     
+    user_name = input("👤 Ievadi lietotāja vārdu (piem., maris): ").strip().replace(" ", "_").lower()
+
     while True:
         cmd = input("Nospied 'S' un Enter, lai sāktu: ").strip().upper()
         if cmd == 'S': break
@@ -23,11 +25,11 @@ if __name__ == "__main__":
     audio_p.start()
 
     classifier = StressClassifier(model_path='stresa_modelis.joblib')
-    ai_agent = QLearningAudioAgent()
+    ai_agent = QLearningAudioAgent(user_name=user_name)
     ai_agent.load_model()
     
     try:
-        asyncio.run(ble_receiver(shared_freq, shared_tempo, classifier, ai_agent, calculate_rmssd))
+        asyncio.run(ble_receiver(user_name, shared_freq, shared_tempo, classifier, ai_agent, calculate_rmssd))
     except KeyboardInterrupt:
         print("\nSaņemts apturēšanas signāls (Ctrl+C)...")
     finally:
