@@ -61,3 +61,8 @@ Random Forest modeļa pārtrenēšana uz industriāli atzītām datubāzēm (WES
 Validācijas Datu vākšana:
 
 Pievienot datu saglabāšanas loģiku (log failus), kas automātiski pieraksta katras sesijas rezultātus vēlākai analīzei un pētījumiem.
+
+COMPLETED:
+- Refactor `hackathon_mvp.py` into a modular architecture.
+- Add Dual BLE Support (Polar H10 + Hammerhead).
+- Implement the Scientific Epoch (60 beats).
