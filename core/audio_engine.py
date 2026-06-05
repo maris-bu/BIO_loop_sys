@@ -2,7 +2,7 @@ import multiprocessing as mp
 
 SAMPLE_RATE = 44100
 BASE_FREQ = 110.0
-VOLUME = 0.8
+VOLUME = 4
 
 def audio_process(shared_freq, shared_tempo):
     import numpy as np

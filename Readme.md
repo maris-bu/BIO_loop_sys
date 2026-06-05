@@ -18,7 +18,7 @@ Atver VS Code termināli un ievadi šo komandu:
 ```bash
 python main.py
 Ievadi lietotāja vārdu:
-maris /programma ielādē maris_q_table.pkl un sāk rakstīt datus failā data/maris_q_agent_training_data.csv/
+maris /programma ielādē maris_q_table.pkl un sāk rakstīt datus failā data/maris_q_agent_training_data.csv
 S enter
 ctr+c STOP
 vai 
