@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f3f0e7">
+  <meta name="theme-color" content="#ffffff">
   <title>Nevori — your recovery companion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +12,7 @@
 </head>
 <body>
   <div class="noise"></div>
+  <div class="mobile-status" aria-hidden="true"><strong id="mobile-clock">12:48</strong><span></span><div>▮▮▮ ◉ ▰</div></div>
   <header class="topbar">
     <button class="brand" data-go="home"><span class="brand-mark"><i></i><i></i><i></i></span>Nevori</button>
     <div class="header-center"><span class="privacy-dot"></span>Your data stays on this device</div>
@@ -24,7 +25,7 @@
         <div class="welcome">
           <button class="welcome-profile profile-avatar" id="mobile-profile-settings" aria-label="Open settings"><span class="avatar-initials">MA</span><i></i></button>
           <div class="welcome-copy">
-            <p class="eyebrow"><span></span>Saturday, June 20</p>
+            <p class="eyebrow"><span></span><span id="home-date">Today</span></p>
             <h1 id="home-title">Good afternoon, Māris.</h1>
             <p id="home-recovery-copy">Recovery looks promising today.</p>
           </div>
@@ -43,11 +44,42 @@
           </div>
         </div>
 
+        <section class="today-strip" aria-label="Today's recovery overview">
+          <article class="today-card readiness-card" id="home-readiness-card" role="button" tabindex="0" aria-label="Connect a wearable to calculate readiness">
+            <span class="today-icon">◎</span>
+            <div><small>READINESS</small><strong id="readiness-label">Establishing baseline</strong><p id="readiness-metric">Reading your current HRV…</p></div>
+            <b id="readiness-score">--</b>
+          </article>
+          <article class="today-card rationale-card">
+            <span class="today-icon">↗</span>
+            <div><small>WHY THIS SESSION?</small><strong id="home-recommendation">A personal reset</strong><p id="recommendation-why">Nevori is comparing your current state with your baseline.</p></div>
+            <button class="device-pill" id="home-device-state" type="button" aria-label="Choose or connect a device"><i></i>Connect device</button>
+          </article>
+          <article class="today-card checkin-card">
+            <div class="checkin-copy"><small>HOW DO YOU FEEL?</small><strong id="checkin-status">Help Nevori choose</strong></div>
+            <div class="mood-options" role="group" aria-label="Current mood">
+              <button data-mood="drained" aria-label="Drained">Low</button>
+              <button data-mood="stretched" aria-label="Stressed">Tense</button>
+              <button data-mood="steady" aria-label="Okay">Okay</button>
+              <button data-mood="bright" aria-label="Good">Good</button>
+            </div>
+          </article>
+        </section>
+
+        <section class="post-reflection" id="post-reflection" hidden>
+          <div><small>SESSION COMPLETE</small><strong>How do you feel now?</strong><p>This helps Nevori compare your HRV response with how recovery actually felt.</p></div>
+          <div class="reflection-options">
+            <button data-reflection="worse">Worse</button>
+            <button data-reflection="same">About the same</button>
+            <button data-reflection="better">Better</button>
+          </div>
+        </section>
+
         <div class="home-grid">
           <article class="panel week-panel">
             <div class="panel-head">
               <div><p class="eyebrow">Your week</p><h2>Recovery progress</h2></div>
-              <span class="week-change">↗ 18% this week</span>
+              <span class="week-change" id="weekly-goal">0 of 3 sessions</span>
             </div>
             <div class="chart-wrap">
               <div class="chart-copy">
@@ -65,8 +97,8 @@
 
           <article class="panel learning-panel" id="learning-details" role="button" tabindex="0" aria-label="Open what Nevori has learned">
             <div class="panel-head">
-              <div><p class="eyebrow">Your adaptive model</p><h2>Nevori is learning you.</h2></div>
-              <div class="learn-ring"><strong id="learning-percent">68%</strong><span>learned</span></div>
+              <div><p class="eyebrow" id="learning-confidence">Early learning</p><h2>Nevori is learning you.</h2></div>
+              <div class="learn-ring"><strong id="learning-percent">0%</strong><span>learned</span></div>
             </div>
             <div class="learning-note">
               <span class="note-icon">♫</span>
@@ -85,10 +117,10 @@
           </article>
 
           <article class="panel next-panel" id="quick-start" role="button" tabindex="0" aria-label="Start the suggested four-minute session">
-            <p class="eyebrow">A small nudge</p>
-            <div class="nudge-art"><div class="mini-wave"></div><span>4:00</span></div>
-            <h2>Your best window is approaching.</h2>
-            <p>You often get the strongest shift between 17:00–19:00. A four-minute session may be enough today.</p>
+            <p class="eyebrow">A personal insight</p>
+            <div class="nudge-art"><div class="mini-wave"></div><span id="nudge-duration">4:00</span></div>
+            <h2 id="nudge-title">Your pattern is taking shape.</h2>
+            <p id="personal-insight">Complete a few sessions and Nevori will surface your strongest recovery pattern.</p>
           </article>
         </div>
       </div>
@@ -133,8 +165,36 @@
       </div>
     </section>
 
+    <section class="view" id="mood-view" aria-labelledby="mood-title">
+      <button class="back-button mood-back" data-go="connect" aria-label="Back to device">&#8249;</button>
+      <div class="mood-shell">
+        <div class="mood-heading">
+          <p class="eyebrow"><span></span>Before we begin</p>
+          <h1 id="mood-title">How are you feeling right now?</h1>
+          <p>Your answer adds context to the live HRV signal, helping Nevori choose a better first audio pattern.</p>
+        </div>
+        <div class="mood-bio-summary">
+          <div><small>HEART RATE</small><strong><span id="mood-heart-rate">--</span> bpm</strong></div>
+          <div><small>HRV · RMSSD</small><strong><span id="mood-rmssd">--</span> ms</strong></div>
+          <div><small>DATA SOURCE</small><strong id="mood-data-source">Waiting for signal</strong></div>
+        </div>
+        <div class="mood-grid" role="radiogroup" aria-label="Current mood">
+          <button class="mood-choice" data-session-mood="drained" role="radio" aria-checked="false"><span>↓</span><strong>Drained</strong><small>Low energy or mentally depleted</small></button>
+          <button class="mood-choice" data-session-mood="stretched" role="radio" aria-checked="false"><span>≈</span><strong>Stretched</strong><small>Tense, restless or overloaded</small></button>
+          <button class="mood-choice selected" data-session-mood="steady" role="radio" aria-checked="true"><span>—</span><strong>Steady</strong><small>Okay, but ready for a reset</small></button>
+          <button class="mood-choice" data-session-mood="bright" role="radio" aria-checked="false"><span>↑</span><strong>Bright</strong><small>Calm, clear or energized</small></button>
+        </div>
+        <div class="mood-recommendation">
+          <span class="today-icon">◎</span>
+          <div><small>NEVORI WILL BEGIN WITH</small><strong id="mood-protocol-title">The 6-minute clear reset</strong><p id="mood-protocol-copy">A steady cadence chosen from your biometric signal and check-in.</p></div>
+        </div>
+        <button class="mood-continue" id="mood-continue">Continue</button>
+        <p class="mood-note">This is a wellness check-in, not a medical assessment.</p>
+      </div>
+    </section>
+
     <section class="view" id="headphones-view" aria-labelledby="headphones-title">
-      <button class="back-button" data-go="connect">← Back to device</button>
+      <button class="back-button" data-go="mood">← Back to mood</button>
       <div class="headphones-layout">
         <div class="headphones-art" aria-hidden="true">
           <img src="/assets/nevori-headphones-hero-v2.png" alt="">
@@ -274,6 +334,13 @@
       </div>
     </section>
   </main>
+
+  <nav class="mobile-nav" aria-label="Primary navigation">
+    <button class="active" data-mobile-go="home" aria-label="Home">⌂</button>
+    <button data-mobile-go="session" aria-label="Start session">＋</button>
+    <button data-mobile-go="learning" aria-label="Learning">♡</button>
+    <button data-mobile-go="settings" aria-label="Settings">○</button>
+  </nav>
 
   <div class="modal-backdrop" id="modal" hidden>
     <article class="modal">

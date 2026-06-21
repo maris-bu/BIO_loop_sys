@@ -858,6 +858,41 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
   outline-offset:3px
 }
 
+/* Compact daily intelligence layer */
+.today-strip{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:14px;margin:0 0 24px}
+.today-card{min-height:105px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:13px;padding:15px 17px;border:1px solid rgba(24,34,37,.08);border-radius:21px;background:rgba(255,255,255,.72);box-shadow:0 9px 28px rgba(24,34,37,.055)}
+.today-card>div{min-width:0}
+.today-card small{display:block;color:#748078;font-size:7px;font-weight:800;letter-spacing:.13em}
+.today-card strong{display:block;margin-top:4px;font:700 13px "Manrope"}
+.today-card p{margin:4px 0 0;color:#758078;font-size:8px;line-height:1.35}
+.today-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#e2eee9;color:#537b69;font-size:18px}
+.readiness-card b{width:49px;height:49px;display:grid;place-items:center;border:5px solid #dbeae3;border-top-color:#72a68e;border-radius:50%;font:700 13px "Manrope"}
+.readiness-card{cursor:pointer}
+.readiness-card:hover{transform:translateY(-2px);box-shadow:0 13px 30px rgba(24,34,37,.09)}
+.rationale-card{background:linear-gradient(120deg,rgba(236,242,237,.92),rgba(255,255,255,.75))}
+.device-pill{align-self:start;display:flex;align-items:center;gap:5px;padding:6px 8px;border:0;border-radius:100px;background:#eceeea;color:#747d78;font-size:7px;font-weight:700;white-space:nowrap;cursor:pointer}
+.device-pill:hover{background:#e2e7e2;color:#45544c}
+.device-pill i{width:6px;height:6px;border-radius:50%;background:#aab0ad}
+.device-pill.connected{background:#e0eee7;color:#4e8068}.device-pill.connected i{background:#72af7a}
+.device-pill.demo{background:#f4e8d8;color:#9b733f}.device-pill.demo i{background:#d5a15e}
+#home-date{display:inline;width:auto;height:auto;margin:0;border-radius:0;background:none}
+.checkin-card{grid-template-columns:minmax(0,1fr) auto}
+.mood-options{display:grid;grid-template-columns:repeat(2,1fr);gap:5px}
+.mood-options button{min-width:47px;height:28px;border:1px solid rgba(24,34,37,.08);border-radius:9px;background:#f4f4ef;color:#64716b;font-size:7px;font-weight:700;cursor:pointer}
+.mood-options button:hover,.mood-options button.selected{border-color:#759f8c;background:#e0ece6;color:#345e4d}
+.post-reflection{
+  margin:-10px 0 24px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:22px;
+  border:1px solid rgba(24,34,37,.08);border-radius:20px;background:linear-gradient(110deg,#e4eee8,#f5eee7);
+  box-shadow:0 9px 28px rgba(24,34,37,.055)
+}
+.post-reflection[hidden]{display:none}
+.post-reflection small{display:block;color:#63806f;font-size:7px;font-weight:800;letter-spacing:.13em}
+.post-reflection strong{display:block;margin-top:4px;font:700 14px "Manrope"}
+.post-reflection p{margin:3px 0 0;color:#748078;font-size:8px}
+.reflection-options{display:flex;gap:7px}
+.reflection-options button{height:34px;padding:0 13px;border:1px solid rgba(24,34,37,.09);border-radius:100px;background:rgba(255,255,255,.7);font-size:8px;font-weight:700;cursor:pointer}
+.reflection-options button:hover{background:var(--ink);color:#fff}
+
 /* Mobile home — spacious personal recovery dashboard. */
 @media(max-width:600px){
   body:not(.focused-flow) .topbar{display:none}
@@ -866,7 +901,7 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
   #home-view .welcome{
     position:relative;
     display:grid;
-    grid-template-columns:minmax(0,1fr) 150px;
+    grid-template-columns:minmax(0,1fr) 118px;
     align-items:start;
     gap:4px;
     padding:20px 20px 0;
@@ -918,27 +953,27 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
   .welcome-mark{
     position:relative;
     display:block;
-    width:150px;
-    height:150px;
+    width:112px;
+    height:112px;
     border-radius:50%;
     background:rgba(231,235,227,.72);
     justify-self:end;
-    margin-top:22px;
+    margin-top:48px;
     transform-origin:center;
     animation:nevori-breathe 5.5s ease-in-out infinite;
     will-change:transform,filter
   }
   .welcome-mark i{position:absolute;border-radius:999px}
   .welcome-mark i:first-child{
-    width:39px;height:86px;left:37px;top:31px;
+    width:29px;height:64px;left:28px;top:23px;
     background:#07191f;transform:rotate(31deg)
   }
   .welcome-mark i:nth-child(2){
-    width:39px;height:70px;right:28px;bottom:19px;
+    width:29px;height:52px;right:21px;bottom:14px;
     background:var(--coral);transform:rotate(-35deg)
   }
   .welcome-mark i:last-child{
-    width:30px;height:30px;right:28px;top:25px;background:#07191f
+    width:22px;height:22px;right:21px;top:19px;background:#07191f
   }
   #home-view .session-launcher{
     grid-column:1/-1;
@@ -998,6 +1033,22 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
     display:block;
     padding:14px 20px 0
   }
+  #home-view .today-strip{
+    display:flex;gap:10px;margin:14px 0 0;padding:0 20px 4px;overflow-x:auto;
+    scroll-snap-type:x mandatory;scrollbar-width:none
+  }
+  #home-view .today-strip::-webkit-scrollbar{display:none}
+  #home-view .today-card{flex:0 0 82vw;min-height:104px;scroll-snap-align:center;padding:14px 15px}
+  #home-view .today-card strong{font-size:13px}
+  #home-view .today-card p{font-size:9px}
+  #home-view .today-card small{font-size:7px}
+  #home-view .checkin-card{flex-basis:78vw}
+  #home-view .mood-options button{min-width:54px;height:30px}
+  #home-view .post-reflection{margin:12px 20px 4px;padding:14px;display:block}
+  #home-view .post-reflection[hidden]{display:none}
+  #home-view .post-reflection p{font-size:9px;line-height:1.35}
+  #home-view .reflection-options{margin-top:12px}
+  #home-view .reflection-options button{flex:1;padding:0 8px}
   #home-view .panel{margin-bottom:18px}
   #home-view .week-panel{
     position:relative;
@@ -1713,6 +1764,7 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
   --flow-shadow:0 14px 38px rgba(24,34,37,.07)
 }
 #connect-view,#headphones-view,#settings-view{background:var(--flow-bg)}
+#mood-view{background:var(--flow-bg)}
 #connect-view .back-button,#headphones-view .back-button,#settings-view .back-button{
   width:46px;
   height:46px;
@@ -1724,6 +1776,10 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
   box-shadow:0 8px 22px rgba(24,34,37,.07);
   font-size:0;
   z-index:10
+}
+#mood-view .back-button{
+  width:46px;height:46px;display:grid;place-items:center;border:1px solid var(--flow-border);border-radius:50%;
+  background:rgba(255,255,255,.84);box-shadow:0 8px 22px rgba(24,34,37,.07);font-size:27px;z-index:10
 }
 #connect-view .back-button:before,#headphones-view .back-button:before,#settings-view .back-button:before{
   content:"←";
@@ -1756,6 +1812,35 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
   box-shadow:0 12px 28px rgba(24,34,37,.14);
   transition:transform .2s ease,box-shadow .2s ease
 }
+.mood-shell{width:min(700px,calc(100% - 40px));margin:auto;padding:76px 0 40px}
+.mood-heading{text-align:center;margin-bottom:25px}
+.mood-heading .eyebrow{display:flex;align-items:center;justify-content:center}
+.mood-heading h1{max-width:650px;margin:0 auto 12px;font:700 clamp(42px,5vw,62px)/1.02 "Manrope";letter-spacing:-.055em}
+.mood-heading>p:last-child{max-width:530px;margin:auto;color:#687277;font-size:13px;line-height:1.55}
+.mood-bio-summary{
+  display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:18px;border:1px solid var(--flow-border);
+  border-radius:20px;background:rgba(255,255,255,.65);box-shadow:var(--flow-shadow)
+}
+.mood-bio-summary>div{padding:14px 18px;text-align:center}
+.mood-bio-summary>div+div{border-left:1px solid var(--flow-border)}
+.mood-bio-summary small,.mood-recommendation small{display:block;color:#76817b;font-size:7px;font-weight:800;letter-spacing:.13em}
+.mood-bio-summary strong{display:block;margin-top:5px;font:700 14px "Manrope"}
+.mood-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
+.mood-choice{
+  min-height:105px;display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;column-gap:13px;
+  align-items:center;padding:16px;border:1px solid var(--flow-border);border-radius:20px;background:rgba(255,255,255,.72);
+  text-align:left;cursor:pointer;transition:.22s
+}
+.mood-choice>span{grid-row:1/3;width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:#eef0eb;font-size:20px}
+.mood-choice strong{align-self:end;font:700 14px "Manrope"}
+.mood-choice small{align-self:start;margin-top:4px;color:#748078;font-size:8px}
+.mood-choice:hover,.mood-choice.selected{border-color:#6f9c87;background:#e8f0eb;box-shadow:0 9px 24px rgba(54,91,73,.09)}
+.mood-choice.selected>span{background:#769e8b;color:#fff}
+.mood-recommendation{display:flex;align-items:center;gap:13px;margin-top:16px;padding:15px 17px;border-radius:20px;background:#e4eee8}
+.mood-recommendation strong{display:block;margin-top:3px;font:700 13px "Manrope"}
+.mood-recommendation p{margin:3px 0 0;color:#66736d;font-size:8px}
+.mood-continue{width:100%;height:55px;margin-top:16px;border:0;border-radius:100px;background:var(--ink);color:#fff;font-weight:700;cursor:pointer}
+.mood-note{text-align:center;color:#7a817d;font-size:8px}
 #connect-view .connect-button:hover,#headphones-view .headphones-ready:hover,#settings-view .settings-save:hover{
   transform:translateY(-2px);
   box-shadow:0 16px 34px rgba(24,34,37,.2)
@@ -1779,6 +1864,28 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
     top:20px;
     left:20px
   }
+  #mood-view{height:100dvh;overflow:hidden}
+  #mood-view .back-button{top:18px;left:18px;width:44px;height:44px}
+  .mood-shell{width:calc(100% - 36px);height:100dvh;padding:68px 0 14px;display:flex;flex-direction:column}
+  .mood-heading{margin-bottom:13px;text-align:left}
+  .mood-heading .eyebrow{display:none}
+  .mood-heading h1{font-size:clamp(32px,9vw,41px);margin:0 0 7px}
+  .mood-heading>p:last-child{font-size:10px;line-height:1.4}
+  .mood-bio-summary{margin-bottom:10px}
+  .mood-bio-summary>div{padding:9px 5px}
+  .mood-bio-summary small{font-size:6px}
+  .mood-bio-summary strong{font-size:11px}
+  .mood-grid{flex:1;min-height:0;gap:8px}
+  .mood-choice{min-height:0;padding:10px;grid-template-columns:35px 1fr;column-gap:9px;border-radius:16px}
+  .mood-choice>span{width:35px;height:35px;border-radius:11px;font-size:16px}
+  .mood-choice strong{font-size:12px}
+  .mood-choice small{font-size:7px;line-height:1.2}
+  .mood-recommendation{margin-top:9px;padding:10px 12px}
+  .mood-recommendation .today-icon{width:34px;height:34px}
+  .mood-recommendation strong{font-size:11px}
+  .mood-recommendation p{font-size:7px}
+  .mood-continue{height:48px;margin-top:9px}
+  .mood-note{margin:7px 0 0;font-size:6px}
   #connect-view .connect-layout,#headphones-view .headphones-layout{
     width:100%;
     padding-left:20px;
@@ -1805,4 +1912,278 @@ body.session-active{background:#0c151d}.session-active .noise{opacity:.025}.sess
     font-size:0
   }
   #session-view .back-button.light:before{content:"←";font-size:20px}
+}
+
+@media(max-width:390px){
+  #home-view .welcome{grid-template-columns:minmax(0,1fr) 92px}
+  #home-view .welcome-mark{width:88px;height:88px;margin-top:58px}
+  #home-view .welcome-mark i:first-child{width:23px;height:50px;left:22px;top:18px}
+  #home-view .welcome-mark i:nth-child(2){width:23px;height:41px;right:16px;bottom:11px}
+  #home-view .welcome-mark i:last-child{width:18px;height:18px;right:16px;top:15px}
+}
+
+/* 2026 bright health-app visual system */
+.mobile-status,.mobile-nav{display:none}
+
+@media(max-width:0px){
+  :root{
+    --ui-blue:#bcecf3;
+    --ui-green:#d4efbd;
+    --ui-yellow:#ffe58a;
+    --ui-gray:#f3f3f3;
+    --ui-black:#090909
+  }
+  html{background:#e9e9e9}
+  body{background:#fff;color:var(--ui-black)}
+  .noise{display:none}
+  .mobile-status{
+    position:fixed;inset:0 0 auto;z-index:80;height:34px;padding:10px 18px 0;
+    display:flex;align-items:flex-start;justify-content:space-between;background:#fff;
+    color:#080808;font-size:9px
+  }
+  .mobile-status>span{
+    position:absolute;left:50%;top:8px;transform:translateX(-50%);
+    width:51px;height:14px;border-radius:12px;background:#000
+  }
+  .mobile-status>div{font-size:8px;letter-spacing:1px}
+  .mobile-nav{
+    position:fixed;z-index:75;left:50%;bottom:9px;transform:translateX(-50%);
+    width:calc(100% - 36px);height:58px;padding:5px 9px;display:flex;align-items:center;justify-content:space-around;
+    border:1px solid #e8e8e8;border-radius:22px;background:rgba(255,255,255,.96);
+    box-shadow:0 12px 32px rgba(0,0,0,.12);backdrop-filter:blur(14px)
+  }
+  .mobile-nav button{
+    width:43px;height:43px;border:0;border-radius:50%;background:transparent;color:#090909;
+    font-size:22px;line-height:1;cursor:pointer
+  }
+  .mobile-nav button:first-child,.mobile-nav button.active{background:#111;color:#fff}
+  body.focused-flow .mobile-nav{display:none}
+  body.session-active .mobile-status{background:#fff}
+  .view{min-height:100dvh;padding-top:34px;background:#fff!important}
+  .panel,.today-card,.device-card,.settings-card,.mood-bio-summary,.mood-choice{
+    border:0!important;box-shadow:none!important
+  }
+  h1,h2,strong{color:#080808}
+
+  /* Home */
+  #home-view{padding-bottom:78px}
+  #home-view .home-shell{padding:0 16px 18px}
+  #home-view .welcome{
+    grid-template-columns:minmax(0,1fr) 96px;padding:25px 0 0;background:#fff!important;min-height:226px
+  }
+  #home-view .welcome h1{
+    max-width:5.4em;margin-top:29px;font-size:clamp(38px,11vw,49px);line-height:.98;letter-spacing:-.065em
+  }
+  #home-view .welcome-copy>p:last-child{max-width:17em;font-size:13px;color:#5d5d5d}
+  #home-view .welcome-profile{
+    left:0;right:auto;top:12px;width:35px;height:35px;border:3px solid #f5dc79;
+    background-color:#eee;color:#111;font-size:9px
+  }
+  #home-view .welcome-profile+i{display:none}
+  #home-view .welcome-copy:before{
+    content:"Hello!";position:absolute;top:22px;left:45px;font-size:10px;font-weight:700
+  }
+  #home-view .welcome-mark{
+    width:90px;height:90px;margin-top:73px;background:var(--ui-green);border-radius:23px;animation:none
+  }
+  #home-view .welcome-mark i:first-child{width:23px;height:49px;left:22px;top:18px}
+  #home-view .welcome-mark i:nth-child(2){width:23px;height:41px;right:16px;bottom:10px}
+  #home-view .welcome-mark i:last-child{width:17px;height:17px;right:17px;top:15px}
+  #home-view .session-launcher{margin-top:17px}
+  #home-view .session-launcher .start-button{
+    height:112px;min-height:112px;border-radius:24px;background-image:none!important;background:var(--ui-yellow)!important;
+    color:#090909;text-shadow:none;padding:17px 18px
+  }
+  #home-view .session-launcher .start-button:before{display:none}
+  #home-view .session-launcher .session-card-copy small,
+  #home-view .session-launcher .session-card-copy strong,
+  #home-view .expected-gain small,#home-view .expected-gain strong{color:#090909;text-shadow:none}
+  #home-view .session-launcher .session-card-copy strong{font-size:24px;max-width:230px}
+  #home-view .session-launcher .start-orb{color:#090909;left:20px;bottom:15px;font-size:20px}
+  #home-view .resume-session{border:0;background:var(--ui-green);border-radius:22px;box-shadow:none}
+  #home-view .today-strip{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:13px 0 0;padding:0;overflow:visible
+  }
+  #home-view .today-card{
+    min-height:126px;padding:15px;display:block;border-radius:23px;background:var(--ui-gray)
+  }
+  #home-view .readiness-card{background:var(--ui-green)}
+  #home-view .rationale-card{background:var(--ui-blue)}
+  #home-view .checkin-card{grid-column:1/-1;min-height:88px;display:grid;grid-template-columns:1fr auto;background:var(--ui-gray)}
+  #home-view .today-icon{width:34px;height:34px;margin-bottom:14px;border-radius:50%;background:#fff;color:#000}
+  #home-view .today-card strong{font-size:15px}
+  #home-view .today-card p{font-size:8px;color:#3d3d3d}
+  #home-view .readiness-card b{position:absolute;right:15px;top:15px;width:42px;height:42px;border-color:#fff;border-top-color:#111}
+  #home-view .readiness-card{position:relative}
+  #home-view .device-pill{margin-top:12px;background:#fff;color:#000}
+  #home-view .mood-options button{background:#fff;border:0;border-radius:13px;color:#111}
+  #home-view .mood-options button.selected{background:#111;color:#fff}
+  #home-view .home-grid{padding:10px 0 0}
+  #home-view .panel{border-radius:24px;padding:18px;margin-bottom:10px}
+  #home-view .week-panel{min-height:420px;background:var(--ui-blue)}
+  #home-view .week-panel .eyebrow{margin-bottom:15px}
+  #home-view .week-panel h2{font-size:27px}
+  #home-view .week-change{top:18px;right:18px;background:#fff;color:#111}
+  #home-view .chart-wrap{height:175px;margin-top:18px;grid-template-columns:105px 1fr}
+  #home-view .chart-copy strong{font-size:55px}
+  #home-view .week-chart{height:155px}
+  #home-view .bar-day i{background:rgba(255,255,255,.75)}
+  #home-view .bar-day.active i{background:#111}
+  #home-view .week-summary{min-height:110px;padding-top:16px}
+  #home-view .learning-panel{background:var(--ui-green)!important}
+  #home-view .learning-panel:before,#home-view .next-panel:before{display:none}
+  #home-view .learning-note{background:#fff;border:0}
+  #home-view .recent-panel{background:var(--ui-gray)}
+  #home-view .next-panel{background:var(--ui-yellow)!important}
+  #home-view .post-reflection{margin:10px 0;background:var(--ui-yellow)}
+
+  /* Shared flow pages */
+  #connect-view,#mood-view,#headphones-view,#settings-view{padding-bottom:18px}
+  #connect-view .back-button,#mood-view .back-button,#headphones-view .back-button,#settings-view .back-button{
+    top:45px!important;left:16px!important;width:38px!important;height:38px!important;border:0!important;
+    border-radius:50%!important;background:var(--ui-gray)!important;box-shadow:none!important;color:#111!important
+  }
+  #connect-view .connect-layout,#headphones-view .headphones-layout,.mood-shell,.settings-shell{
+    width:100%!important;max-width:none!important;padding-left:16px!important;padding-right:16px!important
+  }
+  #connect-view .connect-layout{padding-top:91px!important;background:#fff}
+  #connect-view .connect-copy h1,#mood-view h1,#headphones-view h1,#settings-view h1{
+    font-size:clamp(35px,10vw,44px)!important;line-height:1!important;letter-spacing:-.06em!important
+  }
+  #connect-view .connect-copy>div>p:last-child,#mood-view .mood-heading>p:last-child,
+  #headphones-view .headphones-copy>p:not(.step-label),#settings-view .settings-heading>div:first-child>p:last-child{
+    font-size:11px!important;color:#5f5f5f!important
+  }
+
+  /* Devices */
+  #connect-view .device-card{background:#fff!important;padding:0!important}
+  #connect-view .device-option{
+    background:var(--ui-gray)!important;border:0!important;border-radius:24px!important
+  }
+  #connect-view .device-option.selected{background:var(--ui-blue)!important;box-shadow:inset 0 0 0 3px #111!important}
+  #connect-view .selection-check{background:#111!important;color:#fff!important}
+  #connect-view .device-status{background:var(--ui-green)!important;border:0!important;border-radius:22px!important}
+  #connect-view .connect-button{background:var(--ui-yellow)!important;color:#111!important;box-shadow:none!important}
+  #connect-view .demo-button{color:#111}
+
+  /* Mood */
+  #mood-view{overflow:auto}
+  .mood-shell{height:auto;min-height:100dvh;padding-top:91px!important}
+  .mood-heading{text-align:left}
+  .mood-bio-summary{background:var(--ui-blue);border-radius:22px}
+  .mood-grid{gap:9px}
+  .mood-choice{background:var(--ui-gray);border-radius:22px}
+  .mood-choice:nth-child(1){background:#ffe7df}
+  .mood-choice:nth-child(2){background:var(--ui-yellow)}
+  .mood-choice:nth-child(3){background:var(--ui-blue)}
+  .mood-choice:nth-child(4){background:var(--ui-green)}
+  .mood-choice.selected{box-shadow:inset 0 0 0 3px #111!important}
+  .mood-choice.selected>span{background:#111}
+  .mood-recommendation{background:var(--ui-green);border-radius:22px}
+  .mood-continue{background:var(--ui-yellow);color:#111;box-shadow:none}
+
+  /* Headphones */
+  #headphones-view{overflow:auto}
+  #headphones-view .headphones-layout{
+    height:auto!important;min-height:100dvh!important;padding-top:91px!important;display:flex!important;flex-direction:column!important
+  }
+  #headphones-view .headphones-art{display:grid!important;width:100%;height:210px!important;border-radius:25px;background:var(--ui-green);overflow:hidden}
+  #headphones-view .headphones-art img{width:100%;height:100%;object-fit:contain}
+  #headphones-view .headphones-copy{width:100%;height:auto!important;margin-top:17px}
+  #headphones-view .headphone-benefits>div{border:0;background:var(--ui-gray);border-radius:17px;margin-bottom:7px;padding:11px}
+  #headphones-view .headphone-benefits>div:nth-child(2){background:var(--ui-blue)}
+  #headphones-view .headphone-benefits>div:nth-child(3){background:var(--ui-green)}
+  #headphones-view .volume-note{background:var(--ui-yellow);border-radius:17px}
+  #headphones-view .headphones-ready{background:var(--ui-yellow);color:#111;box-shadow:none}
+
+  /* Settings */
+  #settings-view{background:#fff!important}
+  .settings-shell{padding-top:91px!important}
+  .settings-heading{margin-bottom:21px}
+  .settings-profile{background-color:var(--ui-yellow);box-shadow:none}
+  .settings-card{background:var(--ui-gray)!important;border-radius:22px!important}
+  .settings-group:nth-of-type(2) .settings-card{background:var(--ui-blue)!important}
+  .settings-group:nth-of-type(3) .settings-card{background:var(--ui-green)!important}
+  .setting-row{border-bottom-color:rgba(0,0,0,.08)}
+  .setting-icon{background:#fff!important;color:#111!important;border-radius:50%}
+  .setting-row input[type=text],.setting-row select{background:#fff;border:0}
+  .settings-save{background:var(--ui-yellow);color:#111;box-shadow:none}
+
+  /* Live diagnostics session */
+  body.session-active{background:#fff}
+  #session-view{height:100dvh;overflow:hidden;background:#fff!important;color:#111;padding:34px 12px 12px}
+  #session-view .session-top{height:48px;padding:4px 4px;border:0}
+  #session-view .back-button.light{background:var(--ui-gray)!important;color:#111!important;border:0!important}
+  #session-view .live-device{display:flex;color:#333;font-size:8px}
+  #session-view .session-room{
+    height:calc(100dvh - 94px);padding:0;display:grid;grid-template-rows:auto minmax(0,1fr);overflow:hidden
+  }
+  #session-view .session-heading{margin:6px 5px 10px}
+  #session-view .session-heading .step-label{display:block;color:#555;font-size:7px}
+  #session-view .session-heading h1{font-size:34px;line-height:.98;color:#111}
+  #session-view .session-console{
+    min-height:0;padding:10px;border:0;border-radius:25px;background:var(--ui-blue);
+    display:grid;grid-template-rows:54px minmax(0,1fr) 64px 67px;gap:8px
+  }
+  #session-view .ai-action{height:54px;margin:0;padding:8px 10px;border:0;border-radius:17px;background:#fff}
+  #session-view .ai-action small{color:#555}
+  #session-view .ai-action strong{color:#111}
+  #session-view .ai-pulse{background:var(--ui-yellow);color:#111;box-shadow:none}
+  #session-view .audio-stage{border-radius:22px;background:rgba(255,255,255,.35);overflow:hidden}
+  #session-view .audio-orb{
+    width:min(42vw,180px);height:min(42vw,180px);
+    background:var(--ui-green);box-shadow:none;color:#111
+  }
+  #session-view .sound-halo{border-color:rgba(0,0,0,.08)}
+  #session-view .live-wave{opacity:.8}
+  #session-view .live-wave path{stroke:#111}
+  #session-view .session-controls{padding:0;gap:8px}
+  #session-view .time-block,#session-view .time-block.right{
+    background:#fff;border:0;border-radius:17px;color:#111
+  }
+  #session-view .time-block small{color:#666}
+  #session-view .time-block strong,#session-view .positive{color:#111}
+  #session-view .play-button{background:var(--ui-yellow);color:#111}
+  #session-view .live-strip{height:67px;min-height:67px;margin:0;border:0;border-radius:18px;background:var(--ui-green)}
+  #session-view .live-strip>div{border-right-color:rgba(0,0,0,.1)}
+  #session-view .live-strip small{color:#4f5d55}
+  #session-view .live-strip strong{color:#111}
+  #session-view .bio-icon{color:#111}
+  #session-view .session-footnote{display:none}
+}
+
+/* Keep the compact dashboard layout, with Nevori's original visual language. */
+@media(max-width:600px){
+  #home-view .today-strip{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:14px 0 0;
+    padding:0 20px 4px;
+    overflow:visible
+  }
+  #home-view .today-card{
+    width:auto;
+    min-height:192px;
+    padding:15px;
+    scroll-snap-align:none
+  }
+  #home-view .checkin-card{
+    grid-column:1/-1;
+    min-height:92px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto
+  }
+  #home-view .today-icon{margin-bottom:12px}
+  #home-view .readiness-card,
+  #home-view .rationale-card{display:block}
+  #home-view .rationale-card{
+    background:linear-gradient(145deg,#eee3f5 0%,#e1d0ee 100%);
+    border-color:rgba(102,73,126,.12)
+  }
+  #home-view .rationale-card .today-icon{background:#fff;color:#77528f}
+  #home-view .rationale-card .device-pill{background:rgba(255,255,255,.72);color:#694b7b}
+  #home-view .readiness-card{position:relative}
+  #home-view .readiness-card b{position:absolute;right:15px;top:15px}
+  #home-view .device-pill{margin-top:12px}
 }

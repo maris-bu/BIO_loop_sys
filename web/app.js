@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const state={view:"home",sessionId:null,running:false,remaining:360,baselineHrv:null,muted:false,connected:false,connectionMode:"none",bluetoothDevice:null,selectedDevice:"Polar H10",audioBpm:64,history:[],audio:null};
+const state={view:"home",sessionId:null,running:false,remaining:360,baselineHrv:null,muted:false,connected:false,connectionMode:"none",bluetoothDevice:null,heartCharacteristic:null,rrHistory:[],lastBioUpload:0,selectedDevice:"Polar H10",mood:"steady",recommendedDuration:360,audioBpm:64,history:[],audio:null};
 let suppressDeviceClickUntil=0;
 const INTERRUPTED_SESSION_KEY="nevori_interrupted_session";
 const SETTINGS_KEY="nevori_settings";
@@ -30,6 +30,18 @@ function getInitials(name){
   const parts=name.trim().split(/\s+/).filter(Boolean);
   return (parts.length>1?parts[0][0]+parts.at(-1)[0]:(parts[0]||"N").slice(0,2)).toLocaleUpperCase();
 }
+function greetingForHour(hour){
+  if(hour>=5&&hour<12)return"Good morning";
+  if(hour>=12&&hour<17)return"Good afternoon";
+  if(hour>=17&&hour<22)return"Good evening";
+  return"Good night";
+}
+function updateHomeTime(date=new Date()){
+  const settings=readSettings();
+  $("#home-title").textContent=`${greetingForHour(date.getHours())}, ${settings.name}.`;
+  $("#home-date").textContent=new Intl.DateTimeFormat(undefined,{weekday:"long",month:"long",day:"numeric"}).format(date);
+  $("#mobile-clock").textContent=date.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",hour12:false});
+}
 function applyAvatar(name,photo){
   $$(".profile-avatar").forEach(avatar=>{
     avatar.querySelector(".avatar-initials").textContent=getInitials(name);
@@ -39,9 +51,8 @@ function applyAvatar(name,photo){
   $("#remove-profile-photo").hidden=!photo;
 }
 function applySettings(){
-  const settings=readSettings(),hour=new Date().getHours();
-  const greeting=hour<6?"Good night":hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
-  $("#home-title").textContent=`${greeting}, ${settings.name}.`;
+  const settings=readSettings();
+  updateHomeTime();
   document.body.classList.toggle("user-reduced-motion",settings.reduceMotion);
   $(".next-panel").hidden=!settings.reminders;
   applyAvatar(settings.name,settings.photo);
@@ -57,12 +68,11 @@ function populateSettings(){
   applyAvatar(settings.name,settings.photo);
 }
 function applyLocalTimeTheme(date=new Date()){
-  const settings=readSettings(),hour=date.getHours(),isDay=hour>=6&&hour<18,button=$("#start-flow");
+  const hour=date.getHours(),isDay=hour>=6&&hour<18,button=$("#start-flow");
   button.classList.toggle("time-day",isDay);button.classList.toggle("time-night",!isDay);
   $("#session-time-label").textContent=isDay?"DAYTIME RESET":"EVENING UNWIND";
   $("#session-button-copy").textContent=isDay?"Begin daytime session":"Begin evening session";
-  const greeting=hour<6?"Good night":hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
-  $("#home-title").textContent=`${greeting}, ${settings.name}.`;
+  updateHomeTime(date);
   $("#home-recovery-copy").textContent=hour>=18||hour<6?"Recovery looks promising tonight.":"Recovery looks promising today.";
 }
 function readInterruptedSession(){
@@ -102,12 +112,14 @@ function resumeInterruptedSession(){
   toast("Continuing where you left off");
 }
 function beginNewSessionFlow(){
-  const duration=readSettings().duration;
+  const duration=state.recommendedDuration||readSettings().duration;
   state.sessionId=null;
   state.remaining=duration;
   state.baselineHrv=null;
   $("#player-time").textContent=formatTime(duration);
-  show("connect");
+  if(state.connectionMode==="bluetooth"&&state.bluetoothDevice?.gatt?.connected)openMoodScreen();
+  else if(state.connectionMode==="demo")openMoodScreen();
+  else show("connect");
 }
 function renderWave(){const points=Array.from({length:50},(_,i)=>{const x=i*600/49,y=50+Math.sin(i*.72+Date.now()/420)*18+Math.sin(i*1.7)*6;return`${i?"L":"M"}${x.toFixed(1)},${y.toFixed(1)}`}).join(" ");$("#live-wave-path").setAttribute("d",points)}
 function buildChart(days){const chart=$("#week-chart");chart.innerHTML="";days.forEach((day,i)=>{const el=document.createElement("div");el.className=`bar-day ${i===days.length-1?"active":""}`;el.innerHTML=`<i style="height:${Math.max(8,day.shift*7)}px"></i><span>${day.day}</span>`;chart.appendChild(el)})}
@@ -124,6 +136,19 @@ async function loadDashboard(){
     $("#learning-sessions").textContent=data.learning.sessions_observed;
     $("#learning-patterns").textContent=data.learning.patterns_tested;
     $("#learning-consistency").textContent=`${data.learning.response_consistency}%`;
+    $("#learning-confidence").textContent=data.learning.confidence;
+    $("#readiness-label").textContent=data.today.readiness;
+    $("#readiness-score").textContent=data.today.live_data?data.today.capacity:"--";
+    $("#readiness-metric").textContent=data.today.live_data?`HRV ${data.today.current_rmssd} ms · baseline ${data.today.baseline_rmssd} ms`:"Connect a wearable to calculate from live HRV";
+    $("#home-recommendation").textContent=`${data.today.recommendation} · ${data.today.recommended_minutes} min`;
+    $("#recommendation-why").textContent=data.today.why;
+    $("#weekly-goal").textContent=data.goal.remaining?`${data.goal.completed} of ${data.goal.target} sessions`:"Weekly goal complete";
+    $("#personal-insight").textContent=data.insight;
+    $("#nudge-duration").textContent=`${String(data.today.recommended_minutes).padStart(2,"0")}:00`;
+    state.recommendedDuration=data.today.recommended_minutes*60;
+    state.mood=data.today.mood;
+    $$(".mood-options button").forEach(button=>button.classList.toggle("selected",button.dataset.mood===state.mood));
+    $("#checkin-status").textContent=({drained:"Feeling low",stretched:"Feeling tense",steady:"Feeling okay",bright:"Feeling good"})[state.mood]||"Help Nevori choose";
     $(".learning-note strong").textContent=data.learning.sessions_observed?`${data.learning.best_frequency} Hz · adaptive personal pulse`:"Waiting for your first completed session";
     $(".learning-note p").textContent=data.learning.sessions_observed?"Nevori is comparing which audio pattern produces the most consistent positive HRV response.":"Your completed sessions will teach the local model which audio patterns work best for you.";
     $("#strongest-response").innerHTML=data.best_session?`Your strongest recorded shift is <strong>${data.best_session.shift>=0?"+":""}${data.best_session.shift} ms</strong> after ${data.best_session.duration} minutes.`:"Complete your first session to begin building a personal recovery pattern.";
@@ -171,6 +196,7 @@ function selectDevice(button){
   state.selectedDevice=button.dataset.device;
   state.connected=false;
   state.connectionMode="none";
+  updateHomeDeviceState();
   $$(".device-option").forEach(option=>{const selected=option===button;option.classList.toggle("selected",selected);option.setAttribute("aria-selected",selected)});
   button.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
   $(".device-status").classList.remove("connected","demo","error","scanning");
@@ -188,6 +214,7 @@ async function connect(useDemo=false){
   status.classList.remove("connected","demo","error");
   if(useDemo){
     state.connectionMode="demo";
+    updateHomeDeviceState();
     status.classList.add("demo");
     $(".status-check").textContent="◌";
     $("#connection-label").textContent="DEMO MODE";
@@ -195,7 +222,7 @@ async function connect(useDemo=false){
     $("#signal-copy").textContent="No physical device connected";
     $("#live-device-name").textContent="Demo signal · simulated";
     button.textContent="Continue";
-    button.onclick=()=>show("headphones");
+    button.onclick=()=>openMoodScreen();
     toast("Demo signal selected");
     return;
   }
@@ -208,10 +235,15 @@ async function connect(useDemo=false){
     if(!navigator.bluetooth)throw new Error("Bluetooth is not supported in this browser");
     const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:["heart_rate"]});
     const server=await device.gatt.connect();
-    await server.getPrimaryService("heart_rate");
+    const heartService=await server.getPrimaryService("heart_rate");
+    const characteristic=await heartService.getCharacteristic("heart_rate_measurement");
+    await characteristic.startNotifications();
+    characteristic.addEventListener("characteristicvaluechanged",handleHeartMeasurement);
+    state.heartCharacteristic=characteristic;
     state.bluetoothDevice=device;
     state.connected=true;
     state.connectionMode="bluetooth";
+    updateHomeDeviceState();
     status.classList.remove("scanning");
     status.classList.add("connected");
     $(".status-check").textContent="✓";
@@ -220,7 +252,7 @@ async function connect(useDemo=false){
     $("#signal-copy").textContent="Heart-rate service available";
     $("#live-device-name").textContent=`${device.name||state.selectedDevice} · connected`;
     device.addEventListener("gattserverdisconnected",()=>{
-      state.connected=false;state.connectionMode="none";state.bluetoothDevice=null;
+      state.connected=false;state.connectionMode="none";state.bluetoothDevice=null;updateHomeDeviceState();
       status.classList.remove("connected");
       $(".status-check").textContent="○";
       $("#connection-label").textContent="DISCONNECTED";
@@ -231,10 +263,11 @@ async function connect(useDemo=false){
       toast("Bluetooth device disconnected");
     },{once:true});
     button.textContent="Continue";
-    button.onclick=()=>show("headphones");
+    button.onclick=()=>openMoodScreen();
     toast(`Connected to ${device.name||state.selectedDevice}`);
   }catch(error){
     state.connectionMode="none";
+    updateHomeDeviceState();
     status.classList.remove("scanning");
     status.classList.add("error");
     $(".status-check").textContent="!";
@@ -246,9 +279,57 @@ async function connect(useDemo=false){
     toast("No Bluetooth device connected");
   }
 }
+function calculateRmssd(rrValues){
+  if(rrValues.length<3)return 0;
+  const differences=[];
+  for(let i=1;i<rrValues.length;i++){const difference=rrValues[i]-rrValues[i-1];if(Math.abs(difference)<=150)differences.push(difference)}
+  return differences.length<2?0:Math.sqrt(differences.reduce((sum,value)=>sum+value*value,0)/differences.length);
+}
+async function handleHeartMeasurement(event){
+  const data=event.target.value,flags=data.getUint8(0),is16Bit=Boolean(flags&1),hasRr=Boolean(flags&16);
+  let offset=1,heartRate=is16Bit?data.getUint16(offset,true):data.getUint8(offset);
+  offset+=is16Bit?2:1;
+  if(flags&8)offset+=2;
+  if(hasRr)while(offset+1<data.byteLength){state.rrHistory.push(data.getUint16(offset,true)/1024*1000);offset+=2}
+  state.rrHistory=state.rrHistory.slice(-24);
+  const rmssd=calculateRmssd(state.rrHistory);
+  $("#mood-heart-rate").textContent=Math.round(heartRate);
+  $("#mood-rmssd").textContent=rmssd?rmssd.toFixed(1):"--";
+  $("#mood-data-source").textContent=state.rrHistory.length>=4?"Live wearable":"Heart rate only";
+  if(Date.now()-state.lastBioUpload>1800){
+    state.lastBioUpload=Date.now();
+    await fetch("/api/bio/sample",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({heart_rate:heartRate,rmssd,rr_count:state.rrHistory.length,source:"wearable"})}).catch(()=>{});
+    if(state.view==="home")loadDashboard();
+  }
+}
+async function openMoodScreen(){
+  if(state.connectionMode==="demo"){
+    $("#mood-heart-rate").textContent="Demo";$("#mood-rmssd").textContent="Demo";$("#mood-data-source").textContent="Simulated";
+  }else{
+    $("#mood-data-source").textContent=state.rrHistory.length>=4?"Live wearable":"Building live baseline";
+  }
+  $$(".mood-choice").forEach(choice=>{const selected=choice.dataset.sessionMood===state.mood;choice.classList.toggle("selected",selected);choice.setAttribute("aria-checked",selected)});
+  show("mood");
+  await updateMoodRecommendation();
+}
+async function updateMoodRecommendation(){
+  try{
+    const response=await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mood:state.mood,user:readSettings().name})}),data=await response.json();
+    $("#mood-protocol-title").textContent=data.protocol.title;
+    $("#mood-protocol-copy").textContent=data.protocol.description;
+    state.recommendedDuration=state.mood==="drained"?480:state.mood==="stretched"?360:state.mood==="bright"?240:360;
+  }catch{}
+}
 function enterSession(){show("session");ensureAudio();startSession()}
+function updateHomeDeviceState(){
+  const pill=$("#home-device-state");
+  if(!pill)return;
+  pill.classList.toggle("connected",state.connectionMode==="bluetooth");
+  pill.classList.toggle("demo",state.connectionMode==="demo");
+  pill.innerHTML=`<i></i>${state.connectionMode==="bluetooth"?(state.bluetoothDevice?.name||state.selectedDevice):state.connectionMode==="demo"?"Demo signal":"Connect device"}`;
+}
 async function startSession(){
-  if(!state.sessionId){const settings=readSettings(),duration=settings.duration,device=state.connectionMode==="demo"?"Demo signal":state.bluetoothDevice?.name||state.selectedDevice;state.remaining=duration;$("#player-time").textContent=formatTime(duration);try{const r=await fetch("/api/session/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mood:"steady",duration,user:settings.name,device})}),d=await r.json();state.sessionId=d.session_id;state.baselineHrv=d.baseline_rmssd}catch{state.sessionId=`local-${Date.now()}`;state.baselineHrv=48}}
+  if(!state.sessionId){const settings=readSettings(),duration=state.recommendedDuration||settings.duration,device=state.connectionMode==="demo"?"Demo signal":state.bluetoothDevice?.name||state.selectedDevice;state.remaining=duration;$("#player-time").textContent=formatTime(duration);try{const r=await fetch("/api/session/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mood:state.mood,duration,user:settings.name,device})}),d=await r.json();state.sessionId=d.session_id;state.baselineHrv=d.baseline_rmssd}catch{state.sessionId=`local-${Date.now()}`;state.baselineHrv=48}}
   state.running=true;$("#session-view").classList.add("running");$("#orb-label").textContent="listening";setAudioVolume(true);$("#adaptation-copy").textContent="Listening for a stable 30-second baseline...";saveInterruptedSession();
 }
 function toggleSession(){state.running=!state.running;$("#session-view").classList.toggle("running",state.running);$("#orb-label").textContent=state.running?"listening":"paused";setAudioVolume(state.running)}
@@ -260,10 +341,28 @@ async function completeSession(){
   }
   clearInterruptedSession();state.sessionId=null;state.remaining=readSettings().duration;
   $("#player-time").textContent=formatTime(state.remaining);show("home");await loadDashboard();
+  $("#post-reflection").hidden=false;
   toast("Session complete. Nevori learned from this response.");
 }
 
 $$("[data-go]").forEach(b=>b.onclick=()=>show(b.dataset.go));$("#start-flow").onclick=beginNewSessionFlow;
+$$("[data-mobile-go]").forEach(button=>button.onclick=()=>{
+  const destination=button.dataset.mobileGo;
+  if(destination==="home")show("home");
+  if(destination==="session")beginNewSessionFlow();
+  if(destination==="learning"){show("home");setTimeout(()=>{$("#learning-details").scrollIntoView({behavior:"smooth",block:"center"});$("#modal").hidden=false},180)}
+  if(destination==="settings"){populateSettings();show("settings")}
+});
+$("#home-device-state").onclick=()=>{
+  if(state.connectionMode==="bluetooth"&&state.bluetoothDevice?.gatt?.connected)toast(`${state.bluetoothDevice.name||state.selectedDevice} is connected`);
+  else show("connect");
+};
+function openDeviceFromReadiness(){
+  if(state.connectionMode==="bluetooth"&&state.bluetoothDevice?.gatt?.connected)toast("Readiness is using live wearable data");
+  else show("connect");
+}
+$("#home-readiness-card").onclick=openDeviceFromReadiness;
+$("#home-readiness-card").onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();openDeviceFromReadiness()}};
 $("#profile-settings").onclick=()=>{populateSettings();show("settings")};
 $("#mobile-profile-settings").onclick=()=>{populateSettings();show("settings")};
 $("#setting-volume").oninput=event=>{$("#setting-volume-value").textContent=`${event.target.value}%`};
@@ -304,6 +403,27 @@ $("#save-settings").onclick=()=>{
   localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));applySettings();show("home");toast("Settings saved");
 };
 $("#clear-local-data").onclick=async()=>{localStorage.removeItem(INTERRUPTED_SESSION_KEY);renderInterruptedSession();await fetch("/api/data/clear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user:readSettings().name})}).catch(()=>{});loadDashboard();toast("Local session data cleared")};
+$$(".mood-options button").forEach(button=>button.onclick=async()=>{
+  state.mood=button.dataset.mood;
+  $$(".mood-options button").forEach(item=>item.classList.toggle("selected",item===button));
+  $("#checkin-status").textContent=({drained:"Feeling low",stretched:"Feeling tense",steady:"Feeling okay",bright:"Feeling good"})[state.mood];
+  try{
+    await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mood:state.mood,user:readSettings().name})});
+    await loadDashboard();
+    toast("Recommendation updated");
+  }catch{toast("Check-in saved locally")}
+});
+$$(".mood-choice").forEach(button=>button.onclick=async()=>{
+  state.mood=button.dataset.sessionMood;
+  $$(".mood-choice").forEach(item=>{const selected=item===button;item.classList.toggle("selected",selected);item.setAttribute("aria-checked",selected)});
+  await updateMoodRecommendation();
+});
+$("#mood-continue").onclick=()=>show("headphones");
+$$(".reflection-options button").forEach(button=>button.onclick=async()=>{
+  await fetch("/api/reflection",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({reflection:button.dataset.reflection,user:readSettings().name})}).catch(()=>{});
+  $("#post-reflection").hidden=true;
+  toast("Thanks — Nevori saved your reflection");
+});
 $("#quick-start").onclick=beginNewSessionFlow;
 $("#quick-start").onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();beginNewSessionFlow()}};
 $("#resume-session").onclick=resumeInterruptedSession;
@@ -400,4 +520,4 @@ $("#learning-details").onclick=()=>$("#modal").hidden=false;
 $("#learning-details").onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();$("#modal").hidden=false}};
 $(".modal-close").onclick=()=>$("#modal").hidden=true;$("#modal").onclick=e=>{if(e.target===e.currentTarget)e.currentTarget.hidden=true};
 setInterval(()=>{renderWave();if(!state.running)return;state.remaining--;$("#player-time").textContent=formatTime(state.remaining);saveInterruptedSession();if(state.remaining<=0)completeSession()},1000);
-applySettings();applyLocalTimeTheme();renderInterruptedSession();loadDashboard();renderWave();setInterval(fetchState,2100);setInterval(applyLocalTimeTheme,60000);
+applySettings();applyLocalTimeTheme();renderInterruptedSession();updateHomeDeviceState();loadDashboard();renderWave();setInterval(fetchState,2100);setInterval(applyLocalTimeTheme,60000);

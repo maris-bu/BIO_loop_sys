@@ -81,6 +81,12 @@ class LocalStore:
     def clear_sessions(self, user: str) -> None:
         self.write_json(user, "sessions.json", [])
 
+    def profile(self, user: str) -> dict[str, Any]:
+        return self.read_json(user, "profile.json", {"mood": "steady", "weekly_goal": 3})
+
+    def save_profile(self, user: str, profile: dict[str, Any]) -> None:
+        self.write_json(user, "profile.json", profile)
+
 
 @dataclass
 class BioState:
@@ -113,6 +119,7 @@ class Engine:
         self.started = time.monotonic()
         self.last_decision = self.started
         self.last_rmssd = self.state.rmssd
+        self.last_external_sample = 0.0
         if start_simulator:
             threading.Thread(target=self.simulate, daemon=True).start()
 
@@ -124,16 +131,19 @@ class Engine:
             self.agents[key] = agent
         return self.agents[key]
 
-    def capacity(self) -> int:
+    def capacity(self, mood: str | None = None) -> int:
         hrv = min(max((self.state.rmssd - 20) / 55, 0), 1) * 55
         heart = min(max((92 - self.state.heart_rate) / 35, 0), 1) * 30
-        return round(min(max(hrv + heart + 15 + self.mood_weights.get(self.mood, 0), 5), 98))
+        return round(min(max(hrv + heart + 15 + self.mood_weights.get(mood or self.mood, 0), 5), 98))
 
     def active_session(self) -> dict[str, Any] | None:
         return next((session for session in self.sessions.values() if session["status"] == "active"), None)
 
     def simulate(self) -> None:
         while True:
+            if time.monotonic() - self.last_external_sample < 8:
+                time.sleep(2)
+                continue
             elapsed = time.monotonic() - self.started
             active = self.active_session()
             settle = min((time.monotonic() - active["started_monotonic"]) / 180, 1) * 5 if active else 0
@@ -148,6 +158,24 @@ class Engine:
                 if active and time.monotonic() - self.last_decision >= 12:
                     self._brain_step(active)
             time.sleep(2)
+
+    def ingest_bio(self, heart_rate: float, rmssd: float, rr_count: int, source: str = "wearable") -> dict[str, Any]:
+        if not 30 <= heart_rate <= 220:
+            raise ValueError("Heart rate is outside the supported range")
+        if not 0 <= rmssd <= 250:
+            raise ValueError("RMSSD is outside the supported range")
+        with self.lock:
+            previous = self.state.rmssd
+            self.state.heart_rate = heart_rate
+            if rmssd > 0:
+                self.state.rmssd = rmssd
+            self.state.trend = "up" if self.state.rmssd > previous + .5 else "down" if self.state.rmssd < previous - .5 else "steady"
+            self.state.source = source
+            self.state.signal_quality = "Good" if rr_count >= 12 else "Building" if rr_count >= 4 else "Heart rate only"
+            self.state.capacity = self.capacity()
+            self.state.timestamp = datetime.now(timezone.utc).isoformat()
+            self.last_external_sample = time.monotonic()
+        return self.snapshot()
 
     def _brain_step(self, session: dict[str, Any]) -> None:
         user = session["user"]
@@ -183,13 +211,16 @@ class Engine:
         with self.lock:
             return asdict(self.state)
 
-    def checkin(self, mood: str) -> dict[str, Any]:
+    def checkin(self, mood: str, user: str = "Māris") -> dict[str, Any]:
         if mood not in self.mood_weights:
             raise ValueError("Unknown mood")
         with self.lock:
             self.mood = mood
             self.state.capacity = self.capacity()
             score = self.state.capacity
+        profile = self.store.profile(user)
+        profile.update(mood=mood, checked_in_at=datetime.now(timezone.utc).isoformat())
+        self.store.save_profile(user, profile)
         low = mood in {"drained", "stretched"}
         return {
             "capacity": score,
@@ -204,9 +235,17 @@ class Engine:
         if mood in self.mood_weights:
             self.mood = mood
         user_key = safe_user_name(user)
-        self.agent_for(user_key)
+        agent = self.agent_for(user_key)
         sid = uuid.uuid4().hex[:12]
         snap = self.snapshot()
+        predicted_state = int(self.classifier.predict(snap["heart_rate"], snap["rmssd"]))
+        if mood in {"drained", "stretched"}:
+            predicted_state = 1
+        initial_frequency, choice = agent.choose_action(predicted_state)
+        self.state.audio_frequency = initial_frequency
+        self.state.audio_bpm = max(55, round(snap["heart_rate"] - (7 if mood in {"drained", "stretched"} else 5)))
+        self.state.ai_mode = "Exploring" if "Eksperiments" in choice else "Personalizing"
+        self.state.adaptation_copy = f"Beginning with a {initial_frequency:g} Hz pattern informed by your {mood} check-in"
         self.sessions[sid] = {
             "session_id": sid,
             "user": user_key,
@@ -219,6 +258,8 @@ class Engine:
             "baseline_rmssd": snap["rmssd"],
             "baseline_hr": snap["heart_rate"],
             "mood": self.mood,
+            "initial_ai_state": predicted_state,
+            "initial_audio_frequency": initial_frequency,
         }
         self.last_rmssd = snap["rmssd"]
         self.last_decision = time.monotonic() - 12
@@ -265,9 +306,39 @@ class Engine:
         weekly = [session for session in sessions if self._session_date(session) >= week_start]
         shifts = [float(session.get("delta_rmssd", 0)) for session in weekly]
         stats = self.store.stats(user_key)
+        profile = self.store.profile(user_key)
         observed = len(sessions)
         decisions = int(stats.get("decisions", 0))
         consistency = round(100 * stats.get("positive_responses", 0) / decisions) if decisions else 0
+        patterns_tested = len(stats.get("patterns", [])) if observed else 0
+        evidence_decisions = min(decisions, observed * 10)
+        learning_percent = min(95, round(observed * 7 + patterns_tested * 3 + evidence_decisions * .5)) if observed else 0
+        baselines = [float(item.get("baseline_rmssd", 0)) for item in sessions[-14:] if float(item.get("baseline_rmssd", 0)) > 0]
+        personal_baseline = round(sum(baselines) / len(baselines), 1) if baselines else round(self.state.rmssd, 1)
+        baseline_delta = round(self.state.rmssd - personal_baseline, 1)
+        baseline_percent = round((baseline_delta / personal_baseline) * 100) if personal_baseline else 0
+        mood = profile.get("mood", "steady")
+        capacity = self.capacity(mood)
+        if capacity < 45 or mood == "drained":
+            readiness = "Recover"
+            recommended_minutes = 8
+            recommendation = "A longer downshift"
+        elif capacity < 70 or mood == "stretched":
+            readiness = "Balanced"
+            recommended_minutes = 6
+            recommendation = "A steady reset"
+        else:
+            readiness = "Ready"
+            recommended_minutes = 4
+            recommendation = "A light recharge"
+        live_wearable = self.state.source == "wearable" and time.monotonic() - self.last_external_sample < 8
+        if observed and live_wearable:
+            why = f"Current HRV is {abs(baseline_percent)}% {'above' if baseline_percent >= 0 else 'below'} your recent baseline."
+        elif live_wearable:
+            why = "Live wearable data is establishing your personal HRV baseline."
+        else:
+            why = "Connect a wearable for a live readiness score. Current values are an estimate."
+        goal = max(1, int(profile.get("weekly_goal", 3)))
 
         recent = []
         for session in reversed(sessions[-4:]):
@@ -293,12 +364,32 @@ class Engine:
                 "duration": max(1, round(best.get("elapsed_seconds", best.get("duration", 0)) / 60)),
             } if best else None,
             "learning": {
-                "percent": min(95, round(observed * 4 + decisions * 2)),
+                "percent": learning_percent,
                 "sessions_observed": observed,
-                "patterns_tested": len(stats.get("patterns", [])),
-                "response_consistency": consistency,
+                "patterns_tested": patterns_tested,
+                "response_consistency": consistency if observed else 0,
                 "best_frequency": stats.get("last_frequency", 40),
+                "confidence": "Well personalized" if learning_percent >= 80 else "Building confidence" if learning_percent >= 35 else "Early learning",
             },
+            "today": {
+                "readiness": readiness if live_wearable else "Connect device",
+                "capacity": capacity,
+                "current_rmssd": round(self.state.rmssd, 1),
+                "baseline_rmssd": personal_baseline,
+                "baseline_percent": baseline_percent,
+                "recommendation": recommendation,
+                "recommended_minutes": recommended_minutes,
+                "why": why,
+                "mood": mood,
+                "signal_quality": self.state.signal_quality,
+                "data_quality": self.state.signal_quality if live_wearable else "Estimated",
+                "live_data": live_wearable,
+            },
+            "goal": {"target": goal, "completed": len(weekly), "remaining": max(0, goal - len(weekly))},
+            "insight": (
+                f"Your strongest response so far came after {max(1, round(best.get('elapsed_seconds', best.get('duration', 0)) / 60))} minutes."
+                if best else "Complete a few sessions and Nevori will surface your strongest recovery pattern."
+            ),
         }
 
     @staticmethod
@@ -361,7 +452,23 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             payload = self.payload()
             if self.path == "/api/checkin":
-                return self.send_json(ENGINE.checkin(str(payload.get("mood", ""))))
+                return self.send_json(ENGINE.checkin(str(payload.get("mood", "")), str(payload.get("user", "Māris"))))
+            if self.path == "/api/reflection":
+                user = str(payload.get("user", "Māris"))
+                value = str(payload.get("reflection", ""))
+                if value not in {"worse", "same", "better"}:
+                    raise ValueError("Unknown reflection")
+                profile = ENGINE.store.profile(user)
+                profile.update(last_reflection=value, reflected_at=datetime.now(timezone.utc).isoformat())
+                ENGINE.store.save_profile(user, profile)
+                return self.send_json({"saved": True, "reflection": value})
+            if self.path == "/api/bio/sample":
+                return self.send_json(ENGINE.ingest_bio(
+                    float(payload.get("heart_rate", 0)),
+                    float(payload.get("rmssd", 0)),
+                    int(payload.get("rr_count", 0)),
+                    str(payload.get("source", "wearable")),
+                ))
             if self.path == "/api/session/start":
                 return self.send_json(
                     ENGINE.begin(
