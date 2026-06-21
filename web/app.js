@@ -1,0 +1,403 @@
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const state={view:"home",sessionId:null,running:false,remaining:360,baselineHrv:null,muted:false,connected:false,connectionMode:"none",bluetoothDevice:null,selectedDevice:"Polar H10",audioBpm:64,history:[],audio:null};
+let suppressDeviceClickUntil=0;
+const INTERRUPTED_SESSION_KEY="nevori_interrupted_session";
+const SETTINGS_KEY="nevori_settings";
+
+function toast(message){const el=$("#toast");el.textContent=message;el.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove("show"),2300)}
+function commitView(view){
+  state.view=view;
+  if(view==="home")applySettings();
+  $$(".view").forEach(v=>v.classList.toggle("active",v.id===`${view}-view`));
+  document.body.classList.toggle("session-active",view==="session");
+  document.body.classList.toggle("focused-flow",view!=="home");
+  window.scrollTo({top:0,behavior:"instant"});
+}
+function show(view){
+  if(view===state.view)return;
+  if(document.startViewTransition&&!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    document.startViewTransition(()=>commitView(view));
+  }else{
+    document.body.classList.add("view-changing");
+    setTimeout(()=>{commitView(view);requestAnimationFrame(()=>document.body.classList.remove("view-changing"))},140);
+  }
+}
+function formatTime(seconds){return`${Math.floor(seconds/60).toString().padStart(2,"0")}:${(seconds%60).toString().padStart(2,"0")}`}
+function readSettings(){
+  try{return {...{name:"Māris",photo:"",duration:360,volume:16,reminders:true,reduceMotion:false},...JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}")}}catch{return{name:"Māris",photo:"",duration:360,volume:16,reminders:true,reduceMotion:false}}
+}
+function getInitials(name){
+  const parts=name.trim().split(/\s+/).filter(Boolean);
+  return (parts.length>1?parts[0][0]+parts.at(-1)[0]:(parts[0]||"N").slice(0,2)).toLocaleUpperCase();
+}
+function applyAvatar(name,photo){
+  $$(".profile-avatar").forEach(avatar=>{
+    avatar.querySelector(".avatar-initials").textContent=getInitials(name);
+    avatar.classList.toggle("has-photo",Boolean(photo));
+    avatar.style.backgroundImage=photo?`url("${photo}")`:"";
+  });
+  $("#remove-profile-photo").hidden=!photo;
+}
+function applySettings(){
+  const settings=readSettings(),hour=new Date().getHours();
+  const greeting=hour<6?"Good night":hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
+  $("#home-title").textContent=`${greeting}, ${settings.name}.`;
+  document.body.classList.toggle("user-reduced-motion",settings.reduceMotion);
+  $(".next-panel").hidden=!settings.reminders;
+  applyAvatar(settings.name,settings.photo);
+}
+function populateSettings(){
+  const settings=readSettings();
+  $("#setting-name").value=settings.name;
+  $("#setting-duration").value=String(settings.duration);
+  $("#setting-volume").value=String(settings.volume);
+  $("#setting-volume-value").textContent=`${settings.volume}%`;
+  $("#setting-reminders").checked=settings.reminders;
+  $("#setting-motion").checked=settings.reduceMotion;
+  applyAvatar(settings.name,settings.photo);
+}
+function applyLocalTimeTheme(date=new Date()){
+  const settings=readSettings(),hour=date.getHours(),isDay=hour>=6&&hour<18,button=$("#start-flow");
+  button.classList.toggle("time-day",isDay);button.classList.toggle("time-night",!isDay);
+  $("#session-time-label").textContent=isDay?"DAYTIME RESET":"EVENING UNWIND";
+  $("#session-button-copy").textContent=isDay?"Begin daytime session":"Begin evening session";
+  const greeting=hour<6?"Good night":hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
+  $("#home-title").textContent=`${greeting}, ${settings.name}.`;
+  $("#home-recovery-copy").textContent=hour>=18||hour<6?"Recovery looks promising tonight.":"Recovery looks promising today.";
+}
+function readInterruptedSession(){
+  try{return JSON.parse(localStorage.getItem(INTERRUPTED_SESSION_KEY)||"null")}catch{return null}
+}
+function saveInterruptedSession(){
+  if(!state.sessionId||state.remaining<=0)return;
+  localStorage.setItem(INTERRUPTED_SESSION_KEY,JSON.stringify({
+    sessionId:state.sessionId,
+    remaining:state.remaining,
+    baselineHrv:state.baselineHrv,
+    selectedDevice:state.selectedDevice,
+    savedAt:Date.now()
+  }));
+  renderInterruptedSession();
+}
+function clearInterruptedSession(){
+  localStorage.removeItem(INTERRUPTED_SESSION_KEY);
+  renderInterruptedSession();
+}
+function renderInterruptedSession(){
+  const saved=readInterruptedSession(),button=$("#resume-session");
+  button.hidden=!saved;
+  if(saved)$("#resume-session-copy").textContent=`${formatTime(saved.remaining)} remaining · ${saved.selectedDevice||"saved device"}`;
+}
+function resumeInterruptedSession(){
+  const saved=readInterruptedSession();
+  if(!saved)return;
+  state.sessionId=saved.sessionId;
+  state.remaining=saved.remaining;
+  state.baselineHrv=saved.baselineHrv;
+  state.selectedDevice=saved.selectedDevice||state.selectedDevice;
+  $("#player-time").textContent=formatTime(state.remaining);
+  $("#live-device-name").textContent=`${state.selectedDevice} · signal good`;
+  show("session");ensureAudio();
+  state.running=true;$("#session-view").classList.add("running");$("#orb-label").textContent="listening";setAudioVolume(true);
+  toast("Continuing where you left off");
+}
+function beginNewSessionFlow(){
+  const duration=readSettings().duration;
+  state.sessionId=null;
+  state.remaining=duration;
+  state.baselineHrv=null;
+  $("#player-time").textContent=formatTime(duration);
+  show("connect");
+}
+function renderWave(){const points=Array.from({length:50},(_,i)=>{const x=i*600/49,y=50+Math.sin(i*.72+Date.now()/420)*18+Math.sin(i*1.7)*6;return`${i?"L":"M"}${x.toFixed(1)},${y.toFixed(1)}`}).join(" ");$("#live-wave-path").setAttribute("d",points)}
+function buildChart(days){const chart=$("#week-chart");chart.innerHTML="";days.forEach((day,i)=>{const el=document.createElement("div");el.className=`bar-day ${i===days.length-1?"active":""}`;el.innerHTML=`<i style="height:${Math.max(8,day.shift*7)}px"></i><span>${day.day}</span>`;chart.appendChild(el)})}
+function buildSessions(sessions){
+  $("#session-list").innerHTML=sessions.length?sessions.slice(0,3).map(s=>`<div class="session-row"><div class="session-date"><strong>${s.date}</strong><small>${s.month}</small></div><div class="session-info"><strong>${s.title}</strong><span>${s.duration} min · ${s.audio}</span></div><span class="session-shift">${s.shift>=0?"+":""}${s.shift.toFixed(1)} ms</span><span class="session-arrow">→</span></div>`).join(""):`<div class="empty-sessions"><strong>Your sessions will appear here</strong><span>Finish a recharge to begin your local recovery history.</span></div>`;
+}
+async function loadDashboard(){
+  try{
+    const user=encodeURIComponent(readSettings().name),response=await fetch(`/api/dashboard?user=${user}`),data=await response.json();
+    buildChart(data.week);buildSessions(data.sessions);
+    $("#week-average").textContent=`${data.average_shift>=0?"+":""}${data.average_shift.toFixed(1)}`;
+    $("#weekly-sessions").textContent=data.weekly_sessions;$("#weekly-minutes").textContent=data.weekly_minutes;
+    $("#learning-percent").textContent=`${data.learning.percent}%`;
+    $("#learning-sessions").textContent=data.learning.sessions_observed;
+    $("#learning-patterns").textContent=data.learning.patterns_tested;
+    $("#learning-consistency").textContent=`${data.learning.response_consistency}%`;
+    $(".learning-note strong").textContent=data.learning.sessions_observed?`${data.learning.best_frequency} Hz · adaptive personal pulse`:"Waiting for your first completed session";
+    $(".learning-note p").textContent=data.learning.sessions_observed?"Nevori is comparing which audio pattern produces the most consistent positive HRV response.":"Your completed sessions will teach the local model which audio patterns work best for you.";
+    $("#strongest-response").innerHTML=data.best_session?`Your strongest recorded shift is <strong>${data.best_session.shift>=0?"+":""}${data.best_session.shift} ms</strong> after ${data.best_session.duration} minutes.`:"Complete your first session to begin building a personal recovery pattern.";
+  }catch{buildChart(["S","M","T","W","T","F","S"].map(day=>({day,shift:0})));buildSessions([])}
+}
+async function fetchState(){
+  if(state.view!=="session")return;
+  try{
+    const r=await fetch("/api/state"),d=await r.json();
+    $("#heart-rate").textContent=Math.round(d.heart_rate);$("#rmssd").textContent=Math.round(d.rmssd);
+    if(state.running&&state.baselineHrv){
+      const delta=d.rmssd-state.baselineHrv;
+      $("#session-shift").textContent=`${delta>=0?"+":""}${delta.toFixed(1)} ms`;
+      state.audioBpm=d.audio_bpm||state.audioBpm;
+      $("#audio-bpm").textContent=Math.round(state.audioBpm);
+      $("#adaptation-copy").textContent=d.adaptation_copy;
+      $("#ai-state").textContent=d.ai_mode;
+      $("#science-note").textContent=`Nevori's local model selected a ${d.audio_frequency} Hz pattern from your live HRV response.`;
+      if(state.audio)state.audio.lfo.frequency.setTargetAtTime(state.audioBpm/60,state.audio.ctx.currentTime,2);
+    }
+  }catch{}
+}
+
+function ensureAudio(){
+  if(state.audio)return;
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)return;
+  const ctx=new AudioCtx(),master=ctx.createGain(),filter=ctx.createBiquadFilter(),carrier=ctx.createOscillator(),pulse=ctx.createGain(),lfo=ctx.createOscillator(),depth=ctx.createGain();
+  carrier.type="sine";carrier.frequency.value=110;filter.type="lowpass";filter.frequency.value=420;master.gain.value=.0001;lfo.type="sine";lfo.frequency.value=state.audioBpm/60;depth.gain.value=.16;pulse.gain.value=.32;
+  lfo.connect(depth);depth.connect(pulse.gain);carrier.connect(filter);filter.connect(pulse);pulse.connect(master);master.connect(ctx.destination);carrier.start();lfo.start();
+  state.audio={ctx,master,lfo,carrier};
+}
+function setAudioVolume(on){if(!state.audio)return;const volume=readSettings().volume/100;state.audio.master.gain.cancelScheduledValues(state.audio.ctx.currentTime);state.audio.master.gain.linearRampToValueAtTime(on&&!state.muted?volume:.0001,state.audio.ctx.currentTime+.8)}
+function adaptAudio(bio,delta){
+  let target=64,label="Holding a steady 64 BPM pulse",science="The pulse is holding while Nevori checks whether your HRV response is stable.",ai="Calibrating";
+  if(delta>5){target=56;label="Your HRV is rising — easing the pulse to 56 BPM";science="A positive RMSSD trend triggered a gradual tempo reduction.";ai="Responding well"}
+  else if(delta>1.5){target=60;label="A gentle shift appeared — slowing to 60 BPM";science="The sound changed after a sustained positive HRV trend.";ai="Adapting"}
+  else if(state.remaining<300){target=62;label="Keeping the tone warm and reducing to 62 BPM";ai="Testing response"}
+  state.audioBpm+=(target-state.audioBpm)*.08;$("#audio-bpm").textContent=Math.round(state.audioBpm);$("#adaptation-copy").textContent=label;$("#science-note").textContent=science;$("#ai-state").textContent=ai;
+  if(state.audio)state.audio.lfo.frequency.setTargetAtTime(state.audioBpm/60,state.audio.ctx.currentTime,2);
+}
+function selectDevice(button){
+  if(state.bluetoothDevice?.gatt?.connected)state.bluetoothDevice.gatt.disconnect();
+  state.bluetoothDevice=null;
+  state.selectedDevice=button.dataset.device;
+  state.connected=false;
+  state.connectionMode="none";
+  $$(".device-option").forEach(option=>{const selected=option===button;option.classList.toggle("selected",selected);option.setAttribute("aria-selected",selected)});
+  button.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
+  $(".device-status").classList.remove("connected","demo","error","scanning");
+  $(".status-check").textContent="○";
+  $("#connection-label").textContent="READY TO CONNECT";
+  $("#connection-name").textContent=`${state.selectedDevice} selected`;
+  $("#signal-copy").textContent="Waiting for signal";
+  const connectButton=$("#connect-device");connectButton.textContent="Connect my device";connectButton.onclick=()=>connect(false);
+  const index=$$(".device-option").indexOf(button);
+  $("#mobile-device-count").textContent=`${index+1} of 7`;
+}
+async function connect(useDemo=false){
+  const button=$("#connect-device"),status=$(".device-status");
+  state.connected=false;
+  status.classList.remove("connected","demo","error");
+  if(useDemo){
+    state.connectionMode="demo";
+    status.classList.add("demo");
+    $(".status-check").textContent="◌";
+    $("#connection-label").textContent="DEMO MODE";
+    $("#connection-name").textContent="Simulated bio signal";
+    $("#signal-copy").textContent="No physical device connected";
+    $("#live-device-name").textContent="Demo signal · simulated";
+    button.textContent="Continue";
+    button.onclick=()=>show("headphones");
+    toast("Demo signal selected");
+    return;
+  }
+  status.classList.add("scanning");
+  $(".status-check").textContent="…";
+  button.textContent="Choose Bluetooth device";
+  $("#connection-label").textContent="WAITING FOR BLUETOOTH";
+  $("#signal-copy").textContent="Select your device in the browser prompt";
+  try{
+    if(!navigator.bluetooth)throw new Error("Bluetooth is not supported in this browser");
+    const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:["heart_rate"]});
+    const server=await device.gatt.connect();
+    await server.getPrimaryService("heart_rate");
+    state.bluetoothDevice=device;
+    state.connected=true;
+    state.connectionMode="bluetooth";
+    status.classList.remove("scanning");
+    status.classList.add("connected");
+    $(".status-check").textContent="✓";
+    $("#connection-label").textContent="CONNECTED";
+    $("#connection-name").textContent=device.name||state.selectedDevice;
+    $("#signal-copy").textContent="Heart-rate service available";
+    $("#live-device-name").textContent=`${device.name||state.selectedDevice} · connected`;
+    device.addEventListener("gattserverdisconnected",()=>{
+      state.connected=false;state.connectionMode="none";state.bluetoothDevice=null;
+      status.classList.remove("connected");
+      $(".status-check").textContent="○";
+      $("#connection-label").textContent="DISCONNECTED";
+      $("#connection-name").textContent=`${state.selectedDevice} selected`;
+      $("#signal-copy").textContent="Reconnect before starting";
+      button.textContent="Connect my device";
+      button.onclick=()=>connect(false);
+      toast("Bluetooth device disconnected");
+    },{once:true});
+    button.textContent="Continue";
+    button.onclick=()=>show("headphones");
+    toast(`Connected to ${device.name||state.selectedDevice}`);
+  }catch(error){
+    state.connectionMode="none";
+    status.classList.remove("scanning");
+    status.classList.add("error");
+    $(".status-check").textContent="!";
+    $("#connection-label").textContent="NOT CONNECTED";
+    $("#connection-name").textContent=`${state.selectedDevice} selected`;
+    $("#signal-copy").textContent=error.name==="NotFoundError"?"Connection cancelled":error.message;
+    button.textContent="Try again";
+    button.onclick=()=>connect(false);
+    toast("No Bluetooth device connected");
+  }
+}
+function enterSession(){show("session");ensureAudio();startSession()}
+async function startSession(){
+  if(!state.sessionId){const settings=readSettings(),duration=settings.duration,device=state.connectionMode==="demo"?"Demo signal":state.bluetoothDevice?.name||state.selectedDevice;state.remaining=duration;$("#player-time").textContent=formatTime(duration);try{const r=await fetch("/api/session/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mood:"steady",duration,user:settings.name,device})}),d=await r.json();state.sessionId=d.session_id;state.baselineHrv=d.baseline_rmssd}catch{state.sessionId=`local-${Date.now()}`;state.baselineHrv=48}}
+  state.running=true;$("#session-view").classList.add("running");$("#orb-label").textContent="listening";setAudioVolume(true);$("#adaptation-copy").textContent="Listening for a stable 30-second baseline...";saveInterruptedSession();
+}
+function toggleSession(){state.running=!state.running;$("#session-view").classList.toggle("running",state.running);$("#orb-label").textContent=state.running?"listening":"paused";setAudioVolume(state.running)}
+function interruptSession(){state.running=false;setAudioVolume(false);saveInterruptedSession();$("#session-view").classList.remove("running");show("home");toast("Session paused. You can continue it anytime.")}
+async function completeSession(){
+  state.running=false;setAudioVolume(false);
+  if(state.sessionId&&!state.sessionId.startsWith("local-")){
+    await fetch("/api/session/complete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:state.sessionId})}).catch(()=>{});
+  }
+  clearInterruptedSession();state.sessionId=null;state.remaining=readSettings().duration;
+  $("#player-time").textContent=formatTime(state.remaining);show("home");await loadDashboard();
+  toast("Session complete. Nevori learned from this response.");
+}
+
+$$("[data-go]").forEach(b=>b.onclick=()=>show(b.dataset.go));$("#start-flow").onclick=beginNewSessionFlow;
+$("#profile-settings").onclick=()=>{populateSettings();show("settings")};
+$("#mobile-profile-settings").onclick=()=>{populateSettings();show("settings")};
+$("#setting-volume").oninput=event=>{$("#setting-volume-value").textContent=`${event.target.value}%`};
+$("#setting-name").oninput=event=>applyAvatar(event.target.value||"N",readSettings().photo);
+$("#choose-profile-photo").onclick=()=>$("#profile-photo-input").click();
+$("#profile-photo-input").onchange=event=>{
+  const file=event.target.files[0];
+  if(!file)return;
+  if(!file.type.startsWith("image/")){toast("Please choose an image file");return}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const image=new Image();
+    image.onload=()=>{
+      const size=Math.min(image.width,image.height),canvas=document.createElement("canvas"),context=canvas.getContext("2d");
+      canvas.width=canvas.height=512;
+      context.drawImage(image,(image.width-size)/2,(image.height-size)/2,size,size,0,0,512,512);
+      const settings=readSettings();
+      settings.photo=canvas.toDataURL("image/jpeg",.84);
+      localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));
+      applyAvatar($("#setting-name").value||settings.name,settings.photo);
+      toast("Profile photo added");
+    };
+    image.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value="";
+};
+$("#remove-profile-photo").onclick=()=>{
+  const settings=readSettings();
+  settings.photo="";
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));
+  applyAvatar($("#setting-name").value||settings.name,"");
+  toast("Profile photo removed");
+};
+$("#save-settings").onclick=()=>{
+  const current=readSettings();
+  const settings={name:$("#setting-name").value.trim()||"Māris",photo:current.photo,duration:Number($("#setting-duration").value),volume:Number($("#setting-volume").value),reminders:$("#setting-reminders").checked,reduceMotion:$("#setting-motion").checked};
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));applySettings();show("home");toast("Settings saved");
+};
+$("#clear-local-data").onclick=async()=>{localStorage.removeItem(INTERRUPTED_SESSION_KEY);renderInterruptedSession();await fetch("/api/data/clear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user:readSettings().name})}).catch(()=>{});loadDashboard();toast("Local session data cleared")};
+$("#quick-start").onclick=beginNewSessionFlow;
+$("#quick-start").onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();beginNewSessionFlow()}};
+$("#resume-session").onclick=resumeInterruptedSession;
+const deviceScroller=$("#device-scroll");
+$$(".device-option").forEach(button=>button.addEventListener("click",event=>{
+  if(event.detail===0)selectDevice(button);
+}));
+function updateCarousel(){
+  const max=deviceScroller.scrollWidth-deviceScroller.clientWidth,ratio=max?deviceScroller.scrollLeft/max:0;
+  $("#scroll-progress").style.width=`${28+ratio*72}%`;
+  const cards=$$(".device-option"),center=deviceScroller.scrollLeft+deviceScroller.clientWidth/2;
+  let closest=0,distance=Infinity;
+  cards.forEach((card,index)=>{const cardCenter=card.offsetLeft+card.offsetWidth/2,next=Math.abs(cardCenter-center);if(next<distance){distance=next;closest=index}});
+  $$(".page-dots i").forEach((item,index)=>item.classList.toggle("active",index===closest));
+  $("#mobile-device-count").textContent=`${closest+1} of ${cards.length}`;
+}
+function moveCarousel(){
+  const card=deviceScroller.querySelector(".device-option"),gap=22,step=(card?.offsetWidth||270)+gap,max=deviceScroller.scrollWidth-deviceScroller.clientWidth;
+  const target=deviceScroller.scrollLeft>=max-8?0:Math.min(max,deviceScroller.scrollLeft+step);
+  deviceScroller.scrollTo({left:target,behavior:"smooth"});
+}
+$("#device-next").onclick=moveCarousel;
+deviceScroller.onscroll=()=>{
+  updateCarousel();
+};
+let wheelTarget=0,wheelFrame=0;
+deviceScroller.addEventListener("wheel",event=>{
+  if(Math.abs(event.deltaY)>Math.abs(event.deltaX)){
+    event.preventDefault();
+    const max=deviceScroller.scrollWidth-deviceScroller.clientWidth;
+    wheelTarget=Math.max(0,Math.min(max,(wheelFrame?wheelTarget:deviceScroller.scrollLeft)+event.deltaY));
+    if(!wheelFrame){
+      const glide=()=>{
+        deviceScroller.scrollLeft+=(wheelTarget-deviceScroller.scrollLeft)*.16;
+        if(Math.abs(wheelTarget-deviceScroller.scrollLeft)>.5)wheelFrame=requestAnimationFrame(glide);
+        else{deviceScroller.scrollLeft=wheelTarget;wheelFrame=0}
+      };
+      wheelFrame=requestAnimationFrame(glide);
+    }
+  }
+},{passive:false});
+let dragStartX=0,dragStartScroll=0,dragging=false,dragMoved=false,pressedDevice=null,dragLastX=0,dragLastTime=0,dragVelocity=0,inertiaFrame=0;
+deviceScroller.addEventListener("pointerdown",event=>{
+  if(event.pointerType==="mouse"&&event.button!==0)return;
+  cancelAnimationFrame(inertiaFrame);inertiaFrame=0;
+  dragging=true;dragMoved=false;pressedDevice=event.target.closest(".device-option");
+  dragStartX=event.clientX;dragStartScroll=deviceScroller.scrollLeft;dragLastX=event.clientX;dragLastTime=performance.now();dragVelocity=0;
+});
+deviceScroller.addEventListener("pointermove",event=>{
+  if(!dragging)return;
+  const distance=event.clientX-dragStartX;
+  if(Math.abs(distance)>6&&!dragMoved){
+    dragMoved=true;
+    suppressDeviceClickUntil=Date.now()+250;
+    deviceScroller.classList.add("dragging");
+    deviceScroller.setPointerCapture(event.pointerId);
+  }
+  if(!dragMoved)return;
+  event.preventDefault();
+  deviceScroller.scrollLeft=dragStartScroll-distance;
+  const now=performance.now(),elapsed=Math.max(1,now-dragLastTime);
+  dragVelocity=(dragLastX-event.clientX)/elapsed;
+  dragLastX=event.clientX;dragLastTime=now;
+});
+function settleCarousel(){
+  const card=deviceScroller.querySelector(".device-option"),step=(card?.offsetWidth||270)+22;
+  deviceScroller.scrollTo({left:Math.round(deviceScroller.scrollLeft/step)*step,behavior:"smooth"});
+}
+function coastCarousel(){
+  if(Math.abs(dragVelocity)<.015){inertiaFrame=0;settleCarousel();return}
+  deviceScroller.scrollLeft+=dragVelocity*16;dragVelocity*=.92;
+  inertiaFrame=requestAnimationFrame(coastCarousel);
+}
+function stopCarouselDrag(event){
+  if(!dragging)return;
+  const shouldSelect=!dragMoved&&pressedDevice;
+  dragging=false;deviceScroller.classList.remove("dragging");
+  if(deviceScroller.hasPointerCapture(event.pointerId))deviceScroller.releasePointerCapture(event.pointerId);
+  if(shouldSelect)selectDevice(pressedDevice);
+  else if(dragMoved)inertiaFrame=requestAnimationFrame(coastCarousel);
+  pressedDevice=null;dragMoved=false;
+}
+deviceScroller.addEventListener("pointerup",stopCarouselDrag);
+deviceScroller.addEventListener("pointercancel",stopCarouselDrag);
+deviceScroller.addEventListener("keydown",event=>{
+  if(event.key==="ArrowRight"){event.preventDefault();moveCarousel()}
+  if(event.key==="ArrowLeft"){event.preventDefault();deviceScroller.scrollTo({left:Math.max(0,deviceScroller.scrollLeft-292),behavior:"smooth"})}
+});
+updateCarousel();
+$("#connect-device").onclick=()=>connect(false);$("#demo-session").onclick=()=>connect(true);$("#play-button").onclick=toggleSession;$("#end-session").onclick=interruptSession;
+$("#headphones-ready").onclick=()=>{toast("Headphones ready · starting adaptive audio");enterSession()};
+$("#without-headphones").onclick=()=>{toast("Using speaker mode · keep volume low");enterSession()};
+$("#learning-details").onclick=()=>$("#modal").hidden=false;
+$("#learning-details").onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();$("#modal").hidden=false}};
+$(".modal-close").onclick=()=>$("#modal").hidden=true;$("#modal").onclick=e=>{if(e.target===e.currentTarget)e.currentTarget.hidden=true};
+setInterval(()=>{renderWave();if(!state.running)return;state.remaining--;$("#player-time").textContent=formatTime(state.remaining);saveInterruptedSession();if(state.remaining<=0)completeSession()},1000);
+applySettings();applyLocalTimeTheme();renderInterruptedSession();loadDashboard();renderWave();setInterval(fetchState,2100);setInterval(applyLocalTimeTheme,60000);

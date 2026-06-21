@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f3f0e7">
+  <title>Nevori — your recovery companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="noise"></div>
+  <header class="topbar">
+    <button class="brand" data-go="home"><span class="brand-mark"><i></i><i></i><i></i></span>Nevori</button>
+    <div class="header-center"><span class="privacy-dot"></span>Your data stays on this device</div>
+    <button class="profile-button profile-avatar" id="profile-settings" aria-label="Open settings"><span class="avatar-initials">MA</span><i></i></button>
+  </header>
+
+  <main>
+    <section class="view active" id="home-view" aria-labelledby="home-title">
+      <div class="home-shell">
+        <div class="welcome">
+          <button class="welcome-profile profile-avatar" id="mobile-profile-settings" aria-label="Open settings"><span class="avatar-initials">MA</span><i></i></button>
+          <div class="welcome-copy">
+            <p class="eyebrow"><span></span>Saturday, June 20</p>
+            <h1 id="home-title">Good afternoon, Māris.</h1>
+            <p id="home-recovery-copy">Recovery looks promising today.</p>
+          </div>
+          <div class="welcome-mark" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="session-launcher">
+            <button class="start-button time-day" id="start-flow">
+              <span class="session-card-copy"><small id="session-time-label">DAYTIME RESET</small><strong id="session-button-copy">Begin daytime session</strong></span>
+              <span class="start-orb">▶</span>
+              <span class="expected-gain"><small>EXPECTED GAIN</small><strong>+4–8 ms HRV</strong></span>
+            </button>
+            <button class="resume-session" id="resume-session" hidden>
+              <span class="resume-icon">↻</span>
+              <span><small>CONTINUE YOUR INTERRUPTED SESSION</small><strong id="resume-session-copy">4:32 remaining</strong></span>
+              <b>→</b>
+            </button>
+          </div>
+        </div>
+
+        <div class="home-grid">
+          <article class="panel week-panel">
+            <div class="panel-head">
+              <div><p class="eyebrow">Your week</p><h2>Recovery progress</h2></div>
+              <span class="week-change">↗ 18% this week</span>
+            </div>
+            <div class="chart-wrap">
+              <div class="chart-copy">
+                <strong id="week-average">+7.4</strong><span>ms</span>
+                <small>average HRV shift</small>
+              </div>
+              <div class="week-chart" id="week-chart" aria-label="Weekly recovery chart"></div>
+            </div>
+            <div class="week-summary">
+              <div><strong id="weekly-sessions">5</strong><span>sessions</span></div>
+              <div><strong id="weekly-minutes">31</strong><span>minutes recovered</span></div>
+              <p id="strongest-response">Complete your first session to begin building a personal recovery pattern.</p>
+            </div>
+          </article>
+
+          <article class="panel learning-panel" id="learning-details" role="button" tabindex="0" aria-label="Open what Nevori has learned">
+            <div class="panel-head">
+              <div><p class="eyebrow">Your adaptive model</p><h2>Nevori is learning you.</h2></div>
+              <div class="learn-ring"><strong id="learning-percent">68%</strong><span>learned</span></div>
+            </div>
+            <div class="learning-note">
+              <span class="note-icon">♫</span>
+              <div><small>CURRENTLY WORKING BEST</small><strong>Low pulse · 60 BPM · warm tone</strong><p>Your HRV improves most when the audio slows gradually rather than starting slow.</p></div>
+            </div>
+            <div class="learning-facts">
+              <div><span id="learning-sessions">0</span><p>sessions observed</p></div>
+              <div><span id="learning-patterns">0</span><p>audio patterns tested</p></div>
+              <div><span id="learning-consistency">0%</span><p>response consistency</p></div>
+            </div>
+          </article>
+
+          <article class="panel recent-panel">
+            <div class="panel-head"><div><p class="eyebrow">Previous sessions</p><h2>Your recent resets</h2></div><button class="tiny-button">View all</button></div>
+            <div class="session-list" id="session-list"></div>
+          </article>
+
+          <article class="panel next-panel" id="quick-start" role="button" tabindex="0" aria-label="Start the suggested four-minute session">
+            <p class="eyebrow">A small nudge</p>
+            <div class="nudge-art"><div class="mini-wave"></div><span>4:00</span></div>
+            <h2>Your best window is approaching.</h2>
+            <p>You often get the strongest shift between 17:00–19:00. A four-minute session may be enough today.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="connect-view" aria-labelledby="connect-title">
+      <button class="back-button" data-go="home">← Back home</button>
+      <div class="connect-layout">
+        <div class="connect-copy">
+          <div>
+            <p class="step-label">SUPPORTED DEVICES</p>
+            <h1 id="connect-title">Choose your device</h1>
+            <p>Connect a device to import your heart rate and HRV data to start.</p>
+          </div>
+          <button class="filter-button" aria-label="Device filters"><i></i><i></i><i></i></button>
+        </div>
+        <div class="device-card">
+          <div class="device-scroll" id="device-scroll" role="listbox" aria-label="Supported heart rate devices" tabindex="0">
+            <button class="device-option selected" data-device="Polar H10" role="option" aria-selected="true"><span class="selection-check">✓</span><span class="device-illustration product"><img src="/assets/device-polar-h10.png" alt=""></span><strong>Polar H10</strong><em>Heart Rate Sensor</em><small><span>★★★★★</span> Gold standard</small></button>
+            <button class="device-option" data-device="Polar Verity Sense" role="option" aria-selected="false"><span class="selection-check">✓</span><span class="device-illustration product"><img src="/assets/device-polar-verity-sense.png" alt=""></span><strong>Polar Verity Sense</strong><em>Optical Sensor</em><small><span>★★★★☆</span> Excellent</small></button>
+            <button class="device-option" data-device="Polar Vantage V3" role="option" aria-selected="false"><span class="selection-check">✓</span><span class="device-illustration product"><img src="/assets/device-polar-vantage-v3.png" alt=""></span><strong>Polar Vantage V3</strong><em>Multisport Watch</em><small><span>★★★★☆</span> Excellent</small></button>
+            <button class="device-option" data-device="Polar Grit X Pro" role="option" aria-selected="false"><span class="selection-check">✓</span><span class="device-illustration product"><img src="/assets/device-polar-grit-x-pro.png" alt=""></span><strong>Polar Grit X Pro</strong><em>Outdoor Watch</em><small><span>★★★★☆</span> Excellent</small></button>
+            <button class="device-option" data-device="Suunto Race" role="option" aria-selected="false"><span class="selection-check">✓</span><span class="device-illustration product"><img src="/assets/device-suunto-race.png" alt=""></span><strong>Suunto Race</strong><em>Performance Watch</em><small><span>★★★★☆</span> Excellent</small></button>
+            <button class="device-option" data-device="COROS PACE Pro" role="option" aria-selected="false"><span class="selection-check">✓</span><span class="device-illustration product"><img src="/assets/device-coros-pace-pro.png" alt=""></span><strong>COROS PACE Pro</strong><em>GPS Sport Watch</em><small><span>★★★★☆</span> Excellent</small></button>
+            <button class="device-option" data-device="Wahoo TICKR X" role="option" aria-selected="false"><span class="selection-check">✓</span><span class="device-illustration product wahoo-product"><img src="/assets/device-wahoo-tickr-x.png" alt=""></span><strong>Wahoo TICKR X</strong><em>Heart Rate Sensor</em><small><span>★★★★☆</span> Very good</small></button>
+          </div>
+          <div class="mobile-device-label"><span>SWIPE TO CHOOSE</span><strong id="mobile-device-count">1 of 7</strong></div>
+          <div class="carousel-controls">
+            <div class="scroll-track"><i id="scroll-progress"></i></div>
+            <div class="page-dots"><i class="active"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <button id="device-next" aria-label="Show next devices">›</button>
+          </div>
+          <div class="device-status">
+            <span class="status-check">○</span>
+            <div><small id="connection-label">READY TO CONNECT</small><strong id="connection-name">Polar H10 selected</strong><em><i></i><span id="signal-copy">Waiting for signal</span></em></div>
+            <div class="signal-bars"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <button class="connect-button" id="connect-device">Connect my device</button>
+          <button class="demo-button" id="demo-session">Continue with demo signal</button>
+          <p class="device-footnote">Bluetooth data is processed locally and is not uploaded.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="headphones-view" aria-labelledby="headphones-title">
+      <button class="back-button" data-go="connect">← Back to device</button>
+      <div class="headphones-layout">
+        <div class="headphones-art" aria-hidden="true">
+          <img src="/assets/nevori-headphones-hero-v2.png" alt="">
+        </div>
+        <div class="headphones-copy">
+          <h1 id="headphones-title">Headphones help Nevori guide you better.</h1>
+          <p>The adaptive pulse uses a stable stereo sound field. Headphones reduce room noise and make subtle tempo and tone changes easier to follow.</p>
+          <div class="headphone-benefits">
+            <div><span>01</span><p><strong>Clearer audio cues</strong>Hear gradual pulse changes without turning the volume up.</p></div>
+            <div><span>02</span><p><strong>Fewer distractions</strong>Create a more consistent environment for this session.</p></div>
+            <div><span>03</span><p><strong>Better comparisons</strong>Similar listening conditions help the AI learn from previous sessions.</p></div>
+          </div>
+          <div class="volume-note"><span>!</span><p>Keep the volume comfortable and low. The audio should feel gentle, never intense.</p></div>
+          <button class="headphones-ready" id="headphones-ready">Continue</button>
+          <button class="without-headphones" id="without-headphones">Continue without headphones</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="settings-view" aria-labelledby="settings-title">
+      <button class="back-button settings-back" data-go="home" aria-label="Back home">&#8249;</button>
+      <div class="settings-shell">
+        <div class="settings-heading">
+          <div>
+            <p class="eyebrow"><span></span>Your space</p>
+            <h1 id="settings-title">Settings</h1>
+            <p>Shape your Nevori experience around what helps you recover.</p>
+          </div>
+          <button class="settings-profile profile-avatar" id="choose-profile-photo" type="button" aria-label="Choose profile photo">
+            <span class="avatar-initials">MA</span><span class="photo-edit">+</span><i></i>
+          </button>
+          <input id="profile-photo-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+        </div>
+
+        <div class="settings-group">
+          <p class="settings-label">Personal</p>
+          <div class="settings-card">
+            <div class="setting-row photo-setting">
+              <span class="setting-icon mint">&#9786;</span>
+              <span class="setting-copy"><strong>Profile photo</strong><small>Tap your picture above to choose one</small></span>
+              <button id="remove-profile-photo" class="remove-photo" type="button" hidden>Remove</button>
+            </div>
+            <label class="setting-row text-setting">
+              <span class="setting-icon coral">Aa</span>
+              <span class="setting-copy"><strong>Your name</strong><small>Used in your home greeting</small></span>
+              <input id="setting-name" type="text" value="M&#257;ris" maxlength="30">
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <p class="settings-label">Your sessions</p>
+          <div class="settings-card">
+            <label class="setting-row">
+              <span class="setting-icon mint">&#9716;</span>
+              <span class="setting-copy"><strong>Session length</strong><small>Your usual adaptive-audio session</small></span>
+              <select id="setting-duration">
+                <option value="240">4 min</option>
+                <option value="360" selected>6 min</option>
+                <option value="480">8 min</option>
+                <option value="600">10 min</option>
+              </select>
+            </label>
+            <label class="setting-row range-setting">
+              <span class="setting-icon lilac">&#9835;</span>
+              <span class="setting-copy"><strong>Audio level</strong><small>Gentle by default</small></span>
+              <span class="volume-control"><output id="setting-volume-value">16%</output><input id="setting-volume" type="range" min="5" max="30" value="16"></span>
+            </label>
+            <label class="setting-row">
+              <span class="setting-icon peach">&#9788;</span>
+              <span class="setting-copy"><strong>Recovery reminders</strong><small>Show your best recovery window</small></span>
+              <input class="switch" id="setting-reminders" type="checkbox" checked>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <p class="settings-label">App preferences</p>
+          <div class="settings-card">
+            <label class="setting-row">
+              <span class="setting-icon mint">&#9673;</span>
+              <span class="setting-copy"><strong>Reduce motion</strong><small>Use calmer page transitions</small></span>
+              <input class="switch" id="setting-motion" type="checkbox">
+            </label>
+            <button class="setting-row data-button" id="clear-local-data">
+              <span class="setting-icon coral">&#8634;</span>
+              <span class="setting-copy"><strong>Clear local session data</strong><small>Remove interrupted sessions from this device</small></span>
+              <b>&#8594;</b>
+            </button>
+          </div>
+        </div>
+
+        <button class="settings-save" id="save-settings">Save settings</button>
+        <p class="settings-note">Nevori is a wellness tool and does not provide medical advice.</p>
+      </div>
+    </section>
+
+    <section class="view" id="session-view" aria-labelledby="session-title">
+      <div class="session-top">
+        <button class="back-button light" id="end-session" aria-label="Back to home">‹</button>
+        <div class="live-device"><i></i><span id="live-device-name">Polar H10 · signal good</span></div>
+      </div>
+      <div class="session-room">
+        <div class="session-heading">
+          <p class="step-label"><span></span>LIVE ADAPTIVE SESSION</p>
+          <h1 id="session-title">Let the sound<br>do the work.</h1>
+        </div>
+        <div class="session-console">
+          <div class="ai-action">
+            <span class="ai-pulse">⌁</span>
+            <div><small>NEVORI JUST ADAPTED</small><strong id="adaptation-copy">Establishing your baseline...</strong></div>
+          </div>
+          <div class="audio-stage" id="audio-stage">
+            <div class="sound-halo halo-one"></div><div class="sound-halo halo-two"></div><div class="sound-halo halo-three"></div>
+            <div class="audio-orb"><span id="orb-label">ready</span></div>
+            <svg class="live-wave" viewBox="0 0 600 100" preserveAspectRatio="none"><path id="live-wave-path"></path></svg>
+          </div>
+          <div class="session-controls">
+            <div class="time-block">
+              <small><span class="metric-icon">◷</span> TIME</small>
+              <strong id="player-time">06:00</strong>
+            </div>
+            <button class="play-button" id="play-button"><span class="play-icon">▶</span><span class="pause-icon">Ⅱ</span></button>
+            <div class="time-block right">
+              <small><span class="metric-icon">⌁</span> LIVE SHIFT</small>
+              <strong class="positive" id="session-shift">—</strong>
+            </div>
+          </div>
+          <div class="live-strip">
+            <div><span class="bio-icon">♡</span><p><small>HEART RATE</small><strong><span id="heart-rate">68</span> bpm</strong></p></div>
+            <div><span class="bio-icon">♢</span><p><small>HRV · RMSSD</small><strong><span id="rmssd">48</span> ms</strong></p></div>
+            <div class="secondary-metric"><p><small>AUDIO PULSE</small><strong><span id="audio-bpm">64</span> BPM</strong></p></div>
+            <div class="secondary-metric"><p><small>AI STATE</small><strong id="ai-state">Listening</strong></p></div>
+          </div>
+          <p id="science-note" class="session-footnote">The algorithm waits for a stable baseline before changing the sound.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modal" hidden>
+    <article class="modal">
+      <button class="modal-close">×</button>
+      <p class="eyebrow">Your model notes</p>
+      <h2>What Nevori has learned so far</h2>
+      <ul>
+        <li><span>01</span><div><strong>Gradual tempo changes work better.</strong><p>Your response is 23% stronger when the pulse steps down over two minutes.</p></div></li>
+        <li><span>02</span><div><strong>Evenings are more responsive.</strong><p>Sessions after 17:00 produce a larger average RMSSD shift.</p></div></li>
+        <li><span>03</span><div><strong>Six minutes is your useful minimum.</strong><p>Your clearest shifts usually appear between minutes four and six.</p></div></li>
+      </ul>
+      <p class="fine-print">These are personal observations, not medical conclusions. Confidence grows only from your completed sessions.</p>
+    </article>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
