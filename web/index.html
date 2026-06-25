@@ -56,12 +56,12 @@
             <button class="device-pill" id="home-device-state" type="button" aria-label="Choose or connect a device"><i></i>Connect device</button>
           </article>
           <article class="today-card checkin-card">
-            <div class="checkin-copy"><small>HOW DO YOU FEEL?</small><strong id="checkin-status">Help Nevori choose</strong></div>
+            <div class="checkin-copy"><small>HOW DO YOU FEEL?</small><strong id="checkin-status">Choose mood</strong></div>
             <div class="mood-options" role="group" aria-label="Current mood">
-              <button data-mood="drained" aria-label="Drained">Low</button>
-              <button data-mood="stretched" aria-label="Stressed">Tense</button>
-              <button data-mood="steady" aria-label="Okay">Okay</button>
-              <button data-mood="bright" aria-label="Good">Good</button>
+              <button data-mood="drained" aria-label="Drained"><span class="mood-face face-drained"><img src="/assets/mood-drained.svg" alt=""></span><span class="mood-label">Low</span></button>
+              <button data-mood="stretched" aria-label="Stressed"><span class="mood-face face-stretched"><img src="/assets/mood-stretched.svg" alt=""></span><span class="mood-label">Tense</span></button>
+              <button data-mood="steady" aria-label="Okay"><span class="mood-face face-steady"><img src="/assets/mood-steady.svg" alt=""></span><span class="mood-label">Okay</span></button>
+              <button data-mood="bright" aria-label="Good"><span class="mood-face face-bright"><img src="/assets/mood-bright.svg" alt=""></span><span class="mood-label">Good</span></button>
             </div>
           </article>
         </section>
@@ -76,6 +76,11 @@
         </section>
 
         <div class="home-grid">
+          <article class="panel recent-panel">
+            <div class="panel-head"><div><p class="eyebrow">Previous sessions</p><h2>Your recent resets</h2></div><button class="tiny-button">View all</button></div>
+            <div class="session-list" id="session-list"></div>
+          </article>
+
           <article class="panel week-panel">
             <div class="panel-head">
               <div><p class="eyebrow">Your week</p><h2>Recovery progress</h2></div>
@@ -83,14 +88,14 @@
             </div>
             <div class="chart-wrap">
               <div class="chart-copy">
-                <strong id="week-average">+7.4</strong><span>ms</span>
+                <strong id="week-average">+0.0</strong><span>ms</span>
                 <small>average HRV shift</small>
               </div>
               <div class="week-chart" id="week-chart" aria-label="Weekly recovery chart"></div>
             </div>
             <div class="week-summary">
-              <div><strong id="weekly-sessions">5</strong><span>sessions</span></div>
-              <div><strong id="weekly-minutes">31</strong><span>minutes recovered</span></div>
+              <div><strong id="weekly-sessions">0</strong><span>sessions</span></div>
+              <div><strong id="weekly-minutes">0</strong><span>minutes recovered</span></div>
               <p id="strongest-response">Complete your first session to begin building a personal recovery pattern.</p>
             </div>
           </article>
@@ -111,17 +116,6 @@
             </div>
           </article>
 
-          <article class="panel recent-panel">
-            <div class="panel-head"><div><p class="eyebrow">Previous sessions</p><h2>Your recent resets</h2></div><button class="tiny-button">View all</button></div>
-            <div class="session-list" id="session-list"></div>
-          </article>
-
-          <article class="panel next-panel" id="quick-start" role="button" tabindex="0" aria-label="Start the suggested four-minute session">
-            <p class="eyebrow">A personal insight</p>
-            <div class="nudge-art"><div class="mini-wave"></div><span id="nudge-duration">4:00</span></div>
-            <h2 id="nudge-title">Your pattern is taking shape.</h2>
-            <p id="personal-insight">Complete a few sessions and Nevori will surface your strongest recovery pattern.</p>
-          </article>
         </div>
       </div>
     </section>
@@ -294,7 +288,7 @@
 
     <section class="view" id="session-view" aria-labelledby="session-title">
       <div class="session-top">
-        <button class="back-button light" id="end-session" aria-label="Back to home">‹</button>
+        <button class="back-button light" id="end-session" type="button" aria-label="Back to home">‹</button>
         <div class="live-device"><i></i><span id="live-device-name">Polar H10 · signal good</span></div>
       </div>
       <div class="session-room">

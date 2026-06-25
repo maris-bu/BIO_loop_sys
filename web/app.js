@@ -1,5 +1,6 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const state={view:"home",sessionId:null,running:false,remaining:360,baselineHrv:null,muted:false,connected:false,connectionMode:"none",bluetoothDevice:null,heartCharacteristic:null,rrHistory:[],lastBioUpload:0,selectedDevice:"Polar H10",mood:"steady",recommendedDuration:360,audioBpm:64,history:[],audio:null};
+const moodStatus={drained:"Low",stretched:"Tense",steady:"Okay",bright:"Good"};
 let suppressDeviceClickUntil=0;
 const INTERRUPTED_SESSION_KEY="nevori_interrupted_session";
 const SETTINGS_KEY="nevori_settings";
@@ -54,7 +55,7 @@ function applySettings(){
   const settings=readSettings();
   updateHomeTime();
   document.body.classList.toggle("user-reduced-motion",settings.reduceMotion);
-  $(".next-panel").hidden=!settings.reminders;
+  if($(".next-panel"))$(".next-panel").hidden=!settings.reminders;
   applyAvatar(settings.name,settings.photo);
 }
 function populateSettings(){
@@ -122,35 +123,37 @@ function beginNewSessionFlow(){
   else show("connect");
 }
 function renderWave(){const points=Array.from({length:50},(_,i)=>{const x=i*600/49,y=50+Math.sin(i*.72+Date.now()/420)*18+Math.sin(i*1.7)*6;return`${i?"L":"M"}${x.toFixed(1)},${y.toFixed(1)}`}).join(" ");$("#live-wave-path").setAttribute("d",points)}
-function buildChart(days){const chart=$("#week-chart");chart.innerHTML="";days.forEach((day,i)=>{const el=document.createElement("div");el.className=`bar-day ${i===days.length-1?"active":""}`;el.innerHTML=`<i style="height:${Math.max(8,day.shift*7)}px"></i><span>${day.day}</span>`;chart.appendChild(el)})}
+function buildChart(days){const chart=$("#week-chart");chart.innerHTML="";days.forEach((day,i)=>{const mood=day.mood||"neutral";const el=document.createElement("div");el.className=`bar-day ${i===days.length-1?"active":""} mood-${mood} ${day.mood?"has-mood":"no-mood"}`;el.innerHTML=`<img class="week-mood" src="/assets/mood-${mood}.svg" alt="${day.mood?`${day.mood} mood`:"No mood check-in"}"><i style="height:${Math.max(8,day.shift*7)}px"></i><span>${day.day}</span>`;chart.appendChild(el)})}
 function buildSessions(sessions){
-  $("#session-list").innerHTML=sessions.length?sessions.slice(0,3).map(s=>`<div class="session-row"><div class="session-date"><strong>${s.date}</strong><small>${s.month}</small></div><div class="session-info"><strong>${s.title}</strong><span>${s.duration} min · ${s.audio}</span></div><span class="session-shift">${s.shift>=0?"+":""}${s.shift.toFixed(1)} ms</span><span class="session-arrow">→</span></div>`).join(""):`<div class="empty-sessions"><strong>Your sessions will appear here</strong><span>Finish a recharge to begin your local recovery history.</span></div>`;
+  $("#session-list").innerHTML=sessions.length?sessions.slice(0,3).map(s=>`<div class="session-row"><div class="session-date"><strong>${s.date}</strong><small>${s.month}</small></div><div class="session-info"><strong>${s.title}</strong><span>${s.duration} min · ${s.audio}</span></div><span class="session-shift">${s.shift>=0?"+":""}${s.shift.toFixed(1)} ms</span><span class="session-arrow">→</span></div>`).join(""):`<div class="empty-sessions"><strong>No sessions yet</strong><span>Start one to build history.</span></div>`;
 }
 async function loadDashboard(){
   try{
     const user=encodeURIComponent(readSettings().name),response=await fetch(`/api/dashboard?user=${user}`),data=await response.json();
     buildChart(data.week);buildSessions(data.sessions);
-    $("#week-average").textContent=`${data.average_shift>=0?"+":""}${data.average_shift.toFixed(1)}`;
-    $("#weekly-sessions").textContent=data.weekly_sessions;$("#weekly-minutes").textContent=data.weekly_minutes;
+    const averageShift=Number(data.average_shift||0);
+    $("#week-average").textContent=`${averageShift>=0?"+":""}${averageShift.toFixed(1)}`;
+    $("#weekly-sessions").textContent=data.weekly_sessions||0;$("#weekly-minutes").textContent=data.weekly_minutes||0;
     $("#learning-percent").textContent=`${data.learning.percent}%`;
+    $(".learn-ring").style.setProperty("--learn-progress",`${Math.min(100,Math.max(0,data.learning.percent))}%`);
     $("#learning-sessions").textContent=data.learning.sessions_observed;
     $("#learning-patterns").textContent=data.learning.patterns_tested;
     $("#learning-consistency").textContent=`${data.learning.response_consistency}%`;
     $("#learning-confidence").textContent=data.learning.confidence;
-    $("#readiness-label").textContent=data.today.readiness;
+    $("#readiness-label").textContent=data.today.live_data?"Live HRV":"Connect device";
     $("#readiness-score").textContent=data.today.live_data?data.today.capacity:"--";
-    $("#readiness-metric").textContent=data.today.live_data?`HRV ${data.today.current_rmssd} ms · baseline ${data.today.baseline_rmssd} ms`:"Connect a wearable to calculate from live HRV";
-    $("#home-recommendation").textContent=`${data.today.recommendation} · ${data.today.recommended_minutes} min`;
-    $("#recommendation-why").textContent=data.today.why;
+    $("#readiness-metric").textContent=data.today.live_data?`${data.today.current_rmssd} ms RMSSD`:"Tap to pair";
+    $("#home-recommendation").textContent=`${data.today.recommended_minutes} min reset`;
+    $("#recommendation-why").textContent=data.today.live_data?data.today.source:"After pairing";
     $("#weekly-goal").textContent=data.goal.remaining?`${data.goal.completed} of ${data.goal.target} sessions`:"Weekly goal complete";
-    $("#personal-insight").textContent=data.insight;
-    $("#nudge-duration").textContent=`${String(data.today.recommended_minutes).padStart(2,"0")}:00`;
+    if($("#personal-insight"))$("#personal-insight").textContent=data.insight;
+    if($("#nudge-duration"))$("#nudge-duration").textContent=`${String(data.today.recommended_minutes).padStart(2,"0")}:00`;
     state.recommendedDuration=data.today.recommended_minutes*60;
     state.mood=data.today.mood;
     $$(".mood-options button").forEach(button=>button.classList.toggle("selected",button.dataset.mood===state.mood));
-    $("#checkin-status").textContent=({drained:"Feeling low",stretched:"Feeling tense",steady:"Feeling okay",bright:"Feeling good"})[state.mood]||"Help Nevori choose";
-    $(".learning-note strong").textContent=data.learning.sessions_observed?`${data.learning.best_frequency} Hz · adaptive personal pulse`:"Waiting for your first completed session";
-    $(".learning-note p").textContent=data.learning.sessions_observed?"Nevori is comparing which audio pattern produces the most consistent positive HRV response.":"Your completed sessions will teach the local model which audio patterns work best for you.";
+    $("#checkin-status").textContent=moodStatus[state.mood]||"Choose mood";
+    $(".learning-note strong").textContent=data.learning.sessions_observed?`${data.learning.best_frequency} Hz pulse`:"No session data yet";
+    $(".learning-note p").textContent=data.learning.sessions_observed?"Best response pattern so far.":"Complete a reset to start learning.";
     $("#strongest-response").innerHTML=data.best_session?`Your strongest recorded shift is <strong>${data.best_session.shift>=0?"+":""}${data.best_session.shift} ms</strong> after ${data.best_session.duration} minutes.`:"Complete your first session to begin building a personal recovery pattern.";
   }catch{buildChart(["S","M","T","W","T","F","S"].map(day=>({day,shift:0})));buildSessions([])}
 }
@@ -406,7 +409,7 @@ $("#clear-local-data").onclick=async()=>{localStorage.removeItem(INTERRUPTED_SES
 $$(".mood-options button").forEach(button=>button.onclick=async()=>{
   state.mood=button.dataset.mood;
   $$(".mood-options button").forEach(item=>item.classList.toggle("selected",item===button));
-  $("#checkin-status").textContent=({drained:"Feeling low",stretched:"Feeling tense",steady:"Feeling okay",bright:"Feeling good"})[state.mood];
+  $("#checkin-status").textContent=moodStatus[state.mood];
   try{
     await fetch("/api/checkin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mood:state.mood,user:readSettings().name})});
     await loadDashboard();
@@ -424,8 +427,10 @@ $$(".reflection-options button").forEach(button=>button.onclick=async()=>{
   $("#post-reflection").hidden=true;
   toast("Thanks — Nevori saved your reflection");
 });
-$("#quick-start").onclick=beginNewSessionFlow;
-$("#quick-start").onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();beginNewSessionFlow()}};
+if($("#quick-start")){
+  $("#quick-start").onclick=beginNewSessionFlow;
+  $("#quick-start").onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();beginNewSessionFlow()}};
+}
 $("#resume-session").onclick=resumeInterruptedSession;
 const deviceScroller=$("#device-scroll");
 $$(".device-option").forEach(button=>button.addEventListener("click",event=>{
@@ -519,5 +524,6 @@ $("#without-headphones").onclick=()=>{toast("Using speaker mode · keep volume l
 $("#learning-details").onclick=()=>$("#modal").hidden=false;
 $("#learning-details").onkeydown=event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();$("#modal").hidden=false}};
 $(".modal-close").onclick=()=>$("#modal").hidden=true;$("#modal").onclick=e=>{if(e.target===e.currentTarget)e.currentTarget.hidden=true};
+document.addEventListener("click",event=>{if(event.target.closest("#end-session")){event.preventDefault();interruptSession()}});
 setInterval(()=>{renderWave();if(!state.running)return;state.remaining--;$("#player-time").textContent=formatTime(state.remaining);saveInterruptedSession();if(state.remaining<=0)completeSession()},1000);
 applySettings();applyLocalTimeTheme();renderInterruptedSession();updateHomeDeviceState();loadDashboard();renderWave();setInterval(fetchState,2100);setInterval(applyLocalTimeTheme,60000);

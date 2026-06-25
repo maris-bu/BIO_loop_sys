@@ -46,6 +46,7 @@ class EngineTests(unittest.TestCase):
         dashboard = self.engine.dashboard("Test User")
         self.assertEqual(dashboard["today"]["mood"], "drained")
         self.assertEqual(dashboard["today"]["recommended_minutes"], 8)
+        self.assertEqual(dashboard["week"][-1]["mood"], "drained")
 
     def test_live_bio_sample_drives_readiness(self):
         self.engine.ingest_bio(62, 58.5, 18)

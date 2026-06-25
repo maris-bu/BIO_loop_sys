@@ -218,8 +218,13 @@ class Engine:
             self.mood = mood
             self.state.capacity = self.capacity()
             score = self.state.capacity
+        checked_in_at = datetime.now(timezone.utc)
         profile = self.store.profile(user)
-        profile.update(mood=mood, checked_in_at=datetime.now(timezone.utc).isoformat())
+        mood_checkins = profile.get("mood_checkins", {})
+        if not isinstance(mood_checkins, dict):
+            mood_checkins = {}
+        mood_checkins[checked_in_at.date().isoformat()] = mood
+        profile.update(mood=mood, checked_in_at=checked_in_at.isoformat(), mood_checkins=mood_checkins)
         self.store.save_profile(user, profile)
         low = mood in {"drained", "stretched"}
         return {
@@ -301,12 +306,20 @@ class Engine:
                 week_buckets[ended].append(float(session.get("delta_rmssd", 0)))
 
         week = []
+        profile = self.store.profile(user_key)
+        mood_checkins = profile.get("mood_checkins", {})
+        if not isinstance(mood_checkins, dict):
+            mood_checkins = {}
         for day, values in week_buckets.items():
-            week.append({"day": day.strftime("%a")[0], "shift": round(sum(values) / len(values), 1) if values else 0})
+            week.append({
+                "day": day.strftime("%a")[0],
+                "date": day.isoformat(),
+                "shift": round(sum(values) / len(values), 1) if values else 0,
+                "mood": mood_checkins.get(day.isoformat()),
+            })
         weekly = [session for session in sessions if self._session_date(session) >= week_start]
         shifts = [float(session.get("delta_rmssd", 0)) for session in weekly]
         stats = self.store.stats(user_key)
-        profile = self.store.profile(user_key)
         observed = len(sessions)
         decisions = int(stats.get("decisions", 0))
         consistency = round(100 * stats.get("positive_responses", 0) / decisions) if decisions else 0
